@@ -1,0 +1,49 @@
+{
+  "variables": {
+    "vm_name": "ubuntu-xenial",
+    "cpus": "2",
+    "memory": "2048",
+    "disk_size": "21440",
+    "iso_url": "https://releases.ubuntu.com/20.04.2/ubuntu-20.04.2-live-server-amd64.iso",
+    "iso_checksum": "d1f2bf834bbe9bb43faf16f9be992a6f3935e65be0edece1dee2aa6eb1767423",
+    "username": "ubuntu",
+    "password": "ubuntu",
+    "http": "http",
+    "output_dir": "d:\\packertest\\"
+  },
+  "builders": [
+    {
+      "vm_name": "{{user `vm_name`}}",
+      "type": "hyperv-iso",
+      "disk_size": "{{user `disk_size`}}",
+      "cpus": "{{user `cpus`}}",
+      "memory": "{{user `memory`}}",
+      "generation": 2,
+      "enable_secure_boot": false,
+
+      "output_directory": "{{user `output_dir`}}{{user `vm_name`}}\\",
+      "iso_url": "{{user `iso_url`}}",
+      "iso_checksum": "{{user `iso_checksum`}}",
+      "switch_name": "external",
+      "ssh_username": "{{user `username`}}",
+      "ssh_password": "{{user `password`}}",
+      "ssh_timeout": "1h",
+      "shutdown_command": "echo '{{user `password`}}' | sudo -S -E shutdown -P now",
+      "http_directory": "{{user `http`}}",
+      "boot_wait": "1s",
+      "boot_command": [
+        "<esc><wait3>",
+        "linux /casper/vmlinuz quiet autoinstall net.ifnames=0 biosdevname=0 ip=dhcp ipv6.disable=1 ds=nocloud-net\\;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ <enter>",
+        "initrd /casper/initrd <enter>",
+        "boot <enter>"
+      ]
+    }
+  ],
+
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": ["ls /"]
+    }
+  ]
+}
