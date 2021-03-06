@@ -9,7 +9,9 @@
     "username": "ubuntu",
     "password": "ubuntu",
     "http": "http",
-    "output_dir": "d:\\packertest\\"
+    "output_dir": "d:\\packertest\\",
+    "keep_registered": "true",
+    "skip_export": "true"
   },
   "builders": [
     {
@@ -20,7 +22,8 @@
       "memory": "{{user `memory`}}",
       "generation": 2,
       "enable_secure_boot": false,
-
+      "keep_registered": "{{user `keep_registered`}}",
+      "skip_export": "{{user `skip_export`}}",
       "output_directory": "{{user `output_dir`}}{{user `vm_name`}}\\",
       "iso_url": "{{user `iso_url`}}",
       "iso_checksum": "{{user `iso_checksum`}}",

@@ -4,7 +4,9 @@ param (
     [Parameter(Mandatory=$true, Position=2)]
     $HostHttpFolder,
     [Parameter(Mandatory=$true,Position=3)]
-	$VariableFile 
+	$VariableFile,
+    [Parameter(Position=4)]
+    $OutputFolder="d:\\Virtual Machines\\"
 )
 
 ## Grab the variables file
@@ -29,5 +31,7 @@ $user_data_content = $user_data_content -replace "{{crypted_password}}", "$crypt
 $user_data_content = $user_data_content -replace "{{hostname}}", "$($variables.vm_name)"
 $user_data_content | Set-Content "packerhttp\user-data"
 
-packer build -var-file "$VariableFile" -var "http=packerhttp" -var "output_dir=d:\\packertest\\" "$TemplateFile"
+packer build -var-file "$VariableFile" -var "http=packerhttp" -var "'output_dir=$OutputFolder'" "$TemplateFile"
+
+
 
