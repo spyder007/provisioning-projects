@@ -9,7 +9,8 @@
     "username": "ubuntu",
     "password": "ubuntu",
     "http": "http",
-    "output_dir": "d:\\packertest\\"
+    "output_dir": "d:\\packertest\\",
+    "switch": "vSwitch"
   },
   "builders": [
     {
