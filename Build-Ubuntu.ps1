@@ -20,8 +20,8 @@ if ($null -ne $VariableFile) {
 }
 
 ## Provision the machine in the Unifi Controller
-$token = Get-AuthToken -scope "unifi.ipmanager"
-$newClient = Provision-UnifiClient -authToken $token -apiUrl "$provisionApi" -group "$provisionGroup" -name "$($variables.vm_name)" -hostname "$($variables.vm_name)"
+$token = ./Get-AuthToken.ps1 -scope "unifi.ipmanager"
+$newClient = ./Provision-UnifiClient.ps1 -authToken $token -apiUrl "$provisionApi" -group "$provisionGroup" -name "$($variables.vm_name)" -hostname "$($variables.vm_name)"
 
 $variables.mac_address = $newClient.mac.Replace(":", "")
 
