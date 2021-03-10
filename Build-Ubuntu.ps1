@@ -23,7 +23,7 @@ if ($null -ne $VariableFile) {
 $token = ./Get-AuthToken.ps1 -scope "unifi.ipmanager"
 $newClient = ./Provision-UnifiClient.ps1 -authToken $token -apiUrl "$provisionApi" -group "$provisionGroup" -name "$($variables.vm_name)" -hostname "$($variables.vm_name)"
 
-$variables.mac_address = $newClient.mac.Replace(":", "")
+$macAddress = $newClient.mac.Replace(":", "")
 
 ## crypt the password (unix style) so that it can go into the autoinstall folder
 $cryptedPass = (echo "$($variables.password)" | openssl passwd -6 -salt "FFFDFSDFSDF" -stdin)
@@ -42,7 +42,7 @@ $user_data_content = $user_data_content -replace "{{crypted_password}}", "$crypt
 $user_data_content = $user_data_content -replace "{{hostname}}", "$($variables.vm_name)"
 $user_data_content | Set-Content "packerhttp\user-data"
 
-packer build -var-file "$VariableFile" -var "http=packerhttp" -var "`'output_dir=$OutputFolder`'" "$TemplateFile"
+packer build -var-file "$VariableFile" -var "http=packerhttp" -var "`'output_dir=$OutputFolder`'" -var "\`mac_address=$macAddress`'" "$TemplateFile"
 
 $vmcx = Get-ChildItem -Path "$OutputFolder" 
 
