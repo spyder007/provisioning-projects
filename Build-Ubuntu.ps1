@@ -24,6 +24,7 @@ $token = ./Get-AuthToken.ps1 -scope "unifi.ipmanager"
 $newClient = ./Provision-UnifiClient.ps1 -authToken $token -apiUrl "$provisionApi" -group "$provisionGroup" -name "$($variables.vm_name)" -hostname "$($variables.vm_name)"
 
 $macAddress = $newClient.mac.Replace(":", "")
+Write-Host "Mac Address = $macAddress"
 
 ## crypt the password (unix style) so that it can go into the autoinstall folder
 $cryptedPass = (echo "$($variables.password)" | openssl passwd -6 -salt "FFFDFSDFSDF" -stdin)
@@ -44,6 +45,6 @@ $user_data_content | Set-Content "packerhttp\user-data"
 
 packer build -var-file "$VariableFile" -var "http=packerhttp" -var "`'output_dir=$OutputFolder`'" -var "\`mac_address=$macAddress`'" "$TemplateFile"
 
-$vmcx = Get-ChildItem -Path "$OutputFolder" 
+$vmcx = Get-ChildItem -Path "$OutputFolder" -Recurse -Filter "*.vmcx"
 
 Import-VM -Path "$($vmcx.FullName)"
