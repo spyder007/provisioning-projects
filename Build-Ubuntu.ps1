@@ -44,5 +44,6 @@ $user_data_content | Set-Content "packerhttp\user-data"
 
 packer build -var-file "$VariableFile" -var "http=packerhttp" -var "`'output_dir=$OutputFolder`'" "$TemplateFile"
 
+$vmcx = Get-ChildItem -Path "$OutputFolder" 
 
-
+Import-VM -Path "$($vmcx.FullName)"
