@@ -16,4 +16,6 @@ autoinstall:
     install-server: true
   packages:
     - linux-cloud-tools-virtual
+  late-commands:
+    - echo '{{username}} ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/{{username}}
 

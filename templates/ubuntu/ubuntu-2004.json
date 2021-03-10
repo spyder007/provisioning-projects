@@ -10,7 +10,8 @@
     "password": "ubuntu",
     "http": "http",
     "output_dir": "d:\\packertest\\",
-    "switch": "vSwitch"
+    "switch": "vSwitch",
+    "mac_address": "000000000000"
   },
   "builders": [
     {
@@ -28,7 +29,7 @@
       "ssh_username": "{{user `username`}}",
       "ssh_password": "{{user `password`}}",
       "ssh_timeout": "1h",
-      "shutdown_command": "echo '{{user `password`}}' | sudo -S -E shutdown -P now",
+      "shutdown_command": "sudo -S -E shutdown -P now",
       "http_directory": "{{user `http`}}",
       "boot_wait": "1s",
       "boot_command": [
@@ -36,7 +37,9 @@
         "linux /casper/vmlinuz quiet autoinstall net.ifnames=0 biosdevname=0 ip=dhcp ipv6.disable=1 ds=nocloud-net\\;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ <enter>",
         "initrd /casper/initrd <enter>",
         "boot <enter>"
-      ]
+      ],
+      "mac_address": "{{user `mac_address`}}",
+      "enable_mac_spoofing": true
     }
   ],
 

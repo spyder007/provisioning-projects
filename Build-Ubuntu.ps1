@@ -6,13 +6,24 @@ param (
     [Parameter(Mandatory=$true,Position=3)]
 	$VariableFile,
     [Parameter(Position=4)]
-    $OutputFolder="d:\\Virtual Machines\\"
+    $OutputFolder="d:\\Virtual Machines\\",
+    $provisionApi="http://docker-dev.gerega.net:9001/",
+    [ValidateSet("physical", "virtual", "camera", "enduser")]
+    [String]
+    $provisionGroup
 )
+
 
 ## Grab the variables file
 if ($null -ne $VariableFile) {
     $variables = Get-Content $VariableFile | ConvertFrom-Json    
 }
+
+## Provision the machine in the Unifi Controller
+$token = Get-AuthToken -scope "unifi.ipmanager"
+$newClient = Provision-UnifiClient -authToken $token -apiUrl "$provisionApi" -group "$provisionGroup" -name "$($variables.vm_name)" -hostname "$($variables.vm_name)"
+
+$variables.mac_address = $newClient.mac.Replace(":", "")
 
 ## crypt the password (unix style) so that it can go into the autoinstall folder
 $cryptedPass = (echo "$($variables.password)" | openssl passwd -6 -salt "FFFDFSDFSDF" -stdin)
