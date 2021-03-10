@@ -46,7 +46,21 @@
   "provisioners": [
     {
       "type": "shell",
-      "inline": ["ls /"]
+      "inline": ["mkdir ~/packertmp"]
+    },
+    {
+      "type": "file",
+      "source": "./templates/ubuntu/basic/files/",
+      "destination": "~/packertmp"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "mkdir ~/.ssh",
+        "cp ~/packertmp/authorized_keys ~/.ssh/",
+        "sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config",
+        "sudo service ssh restart"
+      ]
     }
   ]
 }
