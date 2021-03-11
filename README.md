@@ -1,23 +1,24 @@
-# packer-ubuntu-2004
+# Provisioning Scripts - Hyper-V
 
-An example [Packer][] template for building Ubuntu 20.04 LTS (Focal
-Fossa). Ubuntu 20.04 brings with it a new installer, replacing the previous
-[Debian installer][1] with [`subiquity`][2].
+These are working examples of using Packer to install and provision Hyper-V VMs.
 
-This is the companion example to my notes on doing this, [_Automating Ubuntu
-20.04 installs with Packer_][3].
+Powershell build scripts (like [Build-Ubuntu.ps1][1]) utilize a call to a personal API that randomly generates a Hyper-V Mac
+
+
+The Packer templates are based on the work of [Nick Charlton's work][2] and related [post][3]
+
 
 ## Usage
 
-```sh
-packer build ubuntu-2004.json
+```powershell
+.\Build-Ubuntu.ps1 ".\Templates\ubuntu\ubuntu-2004.json" .\templates\ubuntu\basic\http .\templates\ubuntu\bsaic\basic.pkrvars -provisionGroup "virtual"
 ```
 
 ## Author
 
-Copyright (c) 2020 Nick Charlton. MIT Licensed.
+Copyright (c) 2021 Matt Gerega. MIT Licensed.
 
 [Packer]: https://packer.io
-[1]: https://www.debian.org/devel/debian-installer/
-[2]: https://github.com/CanonicalLtd/subiquity
+[1]: ./Build-Ubuntu.ps1
+[2]: https://github.com/nickcharlton/packer-ubuntu-2004
 [3]: https://nickcharlton.net/posts/automating-ubuntu-2004-installs-with-packer.html
