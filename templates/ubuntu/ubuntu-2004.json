@@ -11,7 +11,9 @@
     "http": "http",
     "output_dir": "d:\\packertest\\",
     "switch": "vSwitch",
-    "mac_address": "000000000000"
+    "mac_address": "000000000000",
+    "files_dirs": "./templates/ubuntu/basic/files/",
+    "provisioning_scripts": "./templates/ubuntu/basic/provisioning.sh"
   },
   "builders": [
     {
@@ -50,19 +52,12 @@
     },
     {
       "type": "file",
-      "source": "./templates/ubuntu/basic/files/",
+      "sources": "{{user `files_dirs`}}",
       "destination": "~/packertmp"
     },
     {
       "type": "shell",
-      "inline": [
-        "sudo apt update",
-        "sudo apt upgrade -y",
-        "mkdir ~/.ssh",
-        "cp ~/packertmp/authorized_keys ~/.ssh/",
-        "sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config",
-        "sudo service ssh restart"
-      ]
+      "script": "{{user `provisioning_scripts`}}"
     }
   ]
 }
