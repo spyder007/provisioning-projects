@@ -15,7 +15,7 @@ param (
 
 
 ## Grab the variables file
-if ($null -ne $VariableFile -and Test-Path $VariableFile) {
+if (($null -ne $VariableFile) -and (Test-Path $VariableFile)) {
     $variables = Get-Content $VariableFile | ConvertFrom-Json    
 }
 else {
