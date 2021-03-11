@@ -6,5 +6,5 @@
     "username": "ubuntu",
     "password": "ubuntu",
     "files_dirs": "./templates/ubuntu/basic/files/,./templates/ubuntu/docker/files/",
-    "provisioning_scripts: "./templates/ubuntu/basic/provisioning.sh,./templates/ubuntu/docker/provisioning.sh"
+    "provisioning_scripts": "./templates/ubuntu/basic/provisioning.sh,./templates/ubuntu/docker/provisioning.sh"
 }

@@ -57,7 +57,7 @@
     },
     {
       "type": "shell",
-      "script": "{{user `provisioning_scripts`}}"
+      "scripts": "{{user `provisioning_scripts`}}"
     }
   ]
 }
