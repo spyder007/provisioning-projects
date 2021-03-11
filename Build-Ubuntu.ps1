@@ -15,8 +15,12 @@ param (
 
 
 ## Grab the variables file
-if ($null -ne $VariableFile) {
+if ($null -ne $VariableFile -and Test-Path $VariableFile) {
     $variables = Get-Content $VariableFile | ConvertFrom-Json    
+}
+else {
+    Write-Error "Variable file is required";
+    return -1;
 }
 
 ## Provision the machine in the Unifi Controller
