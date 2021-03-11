@@ -16,6 +16,9 @@ autoinstall:
     install-server: true
   packages:
     - linux-cloud-tools-virtual
+    - apt-transport-https
+    - ca-certificates
+    - curl
   late-commands:
     - echo '{{username}} ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/{{username}}
 
