@@ -13,7 +13,7 @@
     "switch": "vSwitch",
     "mac_address": "000000000000",
     "files_dirs": "./templates/ubuntu/basic/files/",
-    "provisioning_scripts": "./templates/ubuntu/basic/provisioning.sh"
+    "provisioning_scripts": "./templates/ubuntu/basic/basic-prov.sh"
   },
   "builders": [
     {
