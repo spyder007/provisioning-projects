@@ -14,6 +14,9 @@ The Packer templates are based on the work of [Nick Charlton's work][2] and rela
 .\Build-Ubuntu.ps1 ".\Templates\ubuntu\ubuntu-2004.json" .\templates\ubuntu\basic\http .\templates\ubuntu\bsaic\basic.pkrvars -provisionGroup "virtual"
 ```
 
+## Notes
+The *Basic* template assumes there is a file called `authorized_keys` in `/templates/ubuntu/basic/files` that contains your public SSH key.  The template configures SSH to require key authentication and disables password authentication.
+
 ## Author
 
 Copyright (c) 2021 Matt Gerega. MIT Licensed.
