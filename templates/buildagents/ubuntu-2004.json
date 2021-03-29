@@ -110,17 +110,17 @@
   },
   {
       "type": "file",
-      "source": "{{template_dir}}/lib/virtual-environments/images/linux/post-generation/",
+      "source": "{{template_dir}}/lib/virtual-environments/images/linux/post-generation",
       "destination": "{{user `image_folder`}}"
   },
   {
       "type": "file",
-      "source": "{{template_dir}}/lib/virtual-environments/images/linux/scripts/tests/",
+      "source": "{{template_dir}}/lib/virtual-environments/images/linux/scripts/tests",
       "destination": "{{user `image_folder`}}"
   },
   {
       "type": "file",
-      "source": "{{template_dir}}/lib/virtual-environments/images/linux/scripts/SoftwareReport/",
+      "source": "{{template_dir}}/lib/virtual-environments/images/linux/scripts/SoftwareReport",
       "destination": "{{user `image_folder`}}"
   },
   {
