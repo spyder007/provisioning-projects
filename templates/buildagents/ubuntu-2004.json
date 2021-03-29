@@ -14,10 +14,10 @@
     "mac_address": "000000000000",
     "files_dirs": "./templates/buildagents/files/",
     "provisioning_scripts": "./templates/ubuntu/basic/basic-prov.sh",
-    "image_folder": "~/packertmp",
-    "imagedata_file": "~/packertmp/imagedata.json",
-    "installer_script_folder": "~/packertmp/installers",
-    "helper_script_folder": "~/packertmp/helpers",
+    "image_folder": "/packertmp",
+    "imagedata_file": "/packertmp/imagedata.json",
+    "installer_script_folder": "/packertmp/installers",
+    "helper_script_folder": "/packertmp/helpers",
     "image_os": "ubuntu20",
     "image_version": "dev",
     "run_validation_diskspace": "false"
@@ -55,7 +55,11 @@
   "provisioners": [
     {
       "type": "shell",
-      "inline": ["mkdir {{user `image_folder`}}"]
+      "inline": [
+          "mkdir {{user `image_folder`}}",
+          "chmod 777 {{user `image_folder`}}"
+      ],
+      "execute_command": "sudo sh -c '{{ .Vars }} {{ .Path }}'"
     },
     {
       "type": "file",
@@ -106,7 +110,7 @@
   },
   {
       "type": "file",
-      "source": "{{ template_dir }}/post-generation",
+      "source": "{{template_dir}}/lib/virtual-environments/images/linux/post-generation",
       "destination": "{{user `image_folder`}}"
   },
   {
@@ -116,7 +120,7 @@
   },
   {
       "type": "file",
-      "source": "{{ template_dir }}/scripts/SoftwareReport",
+      "source": "{{template_dir}}/lib/virtual-environments/images/linux/scripts/SoftwareReport",
       "destination": "{{user `image_folder`}}"
   },
   {
