@@ -1,0 +1,24 @@
+#cloud-config
+autoinstall:
+  version: 1
+  identity:
+    hostname: '{{hostname}}'
+    password: '{{crypted_password}}'
+    username: '{{username}}'
+  network:
+    network:
+      version: 2
+      ethernets:
+        eth0:
+          dhcp4: yes
+          dhcp-identifier: mac
+  ssh:
+    install-server: true
+  packages:
+    - linux-cloud-tools-virtual
+    - apt-transport-https
+    - ca-certificates
+    - curl
+  late-commands:
+    - echo '{{username}} ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/{{username}}
+
