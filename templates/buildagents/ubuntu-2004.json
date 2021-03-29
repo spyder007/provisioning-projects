@@ -142,7 +142,7 @@
   {
       "type": "shell",
       "scripts": [
-          "{{template_dir}}/lib/virtual-environments/images/linux/scripts/installers/configure-environment.sh"
+          "{{template_dir}}/scripts/configure-environment.sh"
       ],
       "environment_vars": [
           "IMAGE_VERSION={{user `image_version`}}",
