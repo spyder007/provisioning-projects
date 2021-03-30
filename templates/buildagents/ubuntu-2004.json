@@ -333,12 +333,6 @@
       ]
   },
   {
-      "type": "file",
-      "source": "{{user `image_folder`}}/Ubuntu-Readme.md",
-      "destination": "{{template_dir}}/lib/virtual-environments/images/linux/Ubuntu2004-README.md",
-      "direction": "download"
-  },
-  {
       "type": "shell",
       "scripts":[
           "{{template_dir}}/lib/virtual-environments/images/linux/scripts/installers/post-deployment.sh"
@@ -352,25 +346,9 @@
   },
   {
       "type": "shell",
-      "scripts":[
-          "{{template_dir}}/lib/virtual-environments/images/linux/scripts/installers/validate-disk-space.sh"
-      ],
-      "environment_vars": [
-          "RUN_VALIDATION={{user `run_validation_diskspace`}}"
-      ]
-  },
-  {
-      "type": "file",
-      "source": "{{template_dir}}/lib/virtual-environments/images/linux/config/ubuntu2004.conf",
-      "destination": "/tmp/"
-  },
-  {
-      "type": "shell",
       "inline": [
-          "mkdir -p /etc/vsts",
-          "cp /tmp/ubuntu2004.conf /etc/vsts/machine_instance.conf"
-      ],
-      "execute_command": "sudo sh -c '{{ .Vars }} {{ .Path }}'"
+          "sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config"
+      ]
   }
   ]
 }
