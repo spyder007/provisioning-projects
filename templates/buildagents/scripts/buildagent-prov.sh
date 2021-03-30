@@ -5,5 +5,5 @@ sudo resize2fs $(df / --output=source | sed -e /Filesystem/d)
 sudo apt update
 sudo apt upgrade -y
 mkdir ~/.ssh
-cp ~/imagegeneration/authorized_keys ~/.ssh/
+cp /imagegeneration/authorized_keys ~/.ssh/
 
