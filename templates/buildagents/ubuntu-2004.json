@@ -20,7 +20,8 @@
     "helper_script_folder": "/imagegeneration/helpers",
     "image_os": "ubuntu20",
     "image_version": "dev",
-    "run_validation_diskspace": "false"
+    "run_validation_diskspace": "false",
+    "build_temp": "d:\\buildtemp"
   },
   "builders": [
     {
@@ -48,7 +49,8 @@
         "boot <enter>"
       ],
       "mac_address": "{{user `mac_address`}}",
-      "enable_mac_spoofing": true
+      "enable_mac_spoofing": true,
+      "temp_path": "{{user `build_temp`}}"
     }
   ],
 
