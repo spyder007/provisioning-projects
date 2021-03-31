@@ -2,7 +2,7 @@ param (
     $OutputFolder="d:\\Virtual Machines\\",
     $provisionApi="http://docker-dev.gerega.net:9001/",
     $msAgentPAT,
-    $msAgentOrgUrl="https://dev.azure.com/<your_org>"
+    $msAgentOrgUrl="https://dev.azure.com/<your_org>",
     $msAgentPool="Default",
     $msAgentUrl="https://vstsagentpackage.azureedge.net/agent/2.184.2",
     $msAgentFilename="vsts-agent-linux-x64-2.184.2.tar.gz"
