@@ -31,7 +31,7 @@ if ($null -eq $machineName) {
 
 ## Provision the machine in the Unifi Controller
 $token = ./Get-AuthToken.ps1 -scope "unifi.ipmanager"
-$newClient = ./Provision-UnifiClient.ps1 -authToken $token -apiUrl "$provisionApi" -group "$provisionGroup" -name "$($variables.vm_name)" -hostname "$($variables.vm_name)"
+$newClient = ./Provision-UnifiClient.ps1 -authToken $token -apiUrl "$provisionApi" -group "$provisionGroup" -name "$($machineName)" -hostname "$($machineName)"
 
 $macAddress = $newClient.data.mac.Replace(":", "")
 Write-Host "Mac Address = $macAddress"
@@ -50,7 +50,7 @@ Copy-Item -Recurse "$HostHttpFolder\*" "packerhttp"
 $user_data_content = Get-Content "packerhttp\user-data"
 $user_data_content = $user_data_content -replace "{{username}}", "$($variables.username)"
 $user_data_content = $user_data_content -replace "{{crypted_password}}", "$cryptedPass"
-$user_data_content = $user_data_content -replace "{{hostname}}", "$($variables.vm_name)"
+$user_data_content = $user_data_content -replace "{{hostname}}", "$($machineName)"
 $user_data_content | Set-Content "packerhttp\user-data"
 
 packer build -var-file "$VariableFile" -var "http=packerhttp" -var "output_dir=$OutputFolder" -var "mac_address=$macAddress" -var "vm_name=$machineName" "$TemplateFile"
