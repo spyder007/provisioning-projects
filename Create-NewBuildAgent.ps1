@@ -12,7 +12,7 @@ param (
     [Parameter()]
     $msAgentFilename="vsts-agent-linux-x64-2.184.2.tar.gz",
     [Parameter()]
-    $OutputFolder="d:\\Virtual Machines\\",
+    $OutputFolder="d:\\Virtual Machines\\"
 )
 
 ## Generate agent name
