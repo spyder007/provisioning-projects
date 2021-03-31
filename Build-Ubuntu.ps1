@@ -10,7 +10,9 @@ param (
     $provisionApi="http://docker-dev.gerega.net:9001/",
     [ValidateSet("physical", "virtual", "camera", "enduser")]
     [String]
-    $provisionGroup
+    $provisionGroup,
+    [String]
+    $machineName=$null
 )
 
 
@@ -21,6 +23,10 @@ if (($null -ne $VariableFile) -and (Test-Path $VariableFile)) {
 else {
     Write-Error "Variable file is required";
     return -1;
+}
+
+if ($null -eq $machineName) {
+    $machineName = $variables.vm_name
 }
 
 ## Provision the machine in the Unifi Controller
@@ -47,7 +53,7 @@ $user_data_content = $user_data_content -replace "{{crypted_password}}", "$crypt
 $user_data_content = $user_data_content -replace "{{hostname}}", "$($variables.vm_name)"
 $user_data_content | Set-Content "packerhttp\user-data"
 
-packer build -var-file "$VariableFile" -var "http=packerhttp" -var "output_dir=$OutputFolder" -var "mac_address=$macAddress" "$TemplateFile"
+packer build -var-file "$VariableFile" -var "http=packerhttp" -var "output_dir=$OutputFolder" -var "mac_address=$macAddress" -var "vm_name=$machineName" "$TemplateFile"
 
 $vmFolder = [IO.Path]::Combine($OutputFolder, $variables.vm_name)
 

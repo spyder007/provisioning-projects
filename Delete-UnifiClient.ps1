@@ -4,13 +4,7 @@ param (
     [Parameter(Mandatory=$true)]
     $apiUrl,
     [Parameter(Mandatory=$true)]
-    $group,
-    [Parameter(Mandatory=$true)]
-    $name,
-    [Parameter(Mandatory=$true)]
-    $hostName,
-    $staticIp=$true,
-    $syncDns=$true
+    $macAddress
 )
 
 $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
@@ -28,6 +22,6 @@ $apiUrl = $apiUrl.TrimEnd("/")
 
 $bodyJson = $body | ConvertTo-Json
 
-$result = Invoke-RestMethod "$apiUrl/client/provision" -headers $headers -method Post -Body $bodyJson -ContentType 'application/json'
+$result = Invoke-RestMethod "$apiUrl/client/$macAddress" -headers $headers -method Delete
 
 return $result;
