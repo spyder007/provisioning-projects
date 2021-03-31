@@ -1,11 +1,18 @@
 param (
-    $OutputFolder="d:\\Virtual Machines\\",
-    $provisionApi="http://docker-dev.gerega.net:9001/",
+    [Parameter(Mandatory=$true)]
     $msAgentPAT,
+    [Parameter(Mandatory=$true)]
     $msAgentOrgUrl="https://dev.azure.com/<your_org>",
+    [Parameter()]
+    $provisionApi="http://docker-dev.gerega.net:9001/",
+    [Parameter()]
     $msAgentPool="Default",
+    [Parameter()]
     $msAgentUrl="https://vstsagentpackage.azureedge.net/agent/2.184.2",
-    $msAgentFilename="vsts-agent-linux-x64-2.184.2.tar.gz"
+    [Parameter()]
+    $msAgentFilename="vsts-agent-linux-x64-2.184.2.tar.gz",
+    [Parameter()]
+    $OutputFolder="d:\\Virtual Machines\\",
 )
 
 ## Generate agent name
