@@ -33,7 +33,7 @@ if ($null -eq $machineName) {
 $token = ./Get-AuthToken.ps1 -scope "unifi.ipmanager"
 $newClient = ./Provision-UnifiClient.ps1 -authToken $token -apiUrl "$provisionApi" -group "$provisionGroup" -name "$($variables.vm_name)" -hostname "$($variables.vm_name)"
 
-$macAddress = $newClient.mac.Replace(":", "")
+$macAddress = $newClient.data.mac.Replace(":", "")
 Write-Host "Mac Address = $macAddress"
 
 ## crypt the password (unix style) so that it can go into the autoinstall folder
