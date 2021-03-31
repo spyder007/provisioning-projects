@@ -21,8 +21,15 @@
     "image_os": "ubuntu20",
     "image_version": "dev",
     "run_validation_diskspace": "false",
-    "build_temp": "d:\\buildtemp"
+    "build_temp": "d:\\buildtemp",
+    "ms_agent_url" : "https://vstsagentpackage.azureedge.net/agent/2.184.2",
+    "ms_agent_filename": "vsts-agent-linux-x64-2.184.2.tar.gz",
+    "ms_agent_org_url": "",
+    "ms_agent_pool": "Default"
   },
+  "sensitive-variables": [
+    "ms_agent_pat"
+    ],
   "builders": [
     {
       "vm_name": "{{user `vm_name`}}",
@@ -345,8 +352,23 @@
       "execute_command": "sudo sh -c '{{ .Vars }} {{ .Path }}'"
   },
   {
+    "type": "shell",
+    "scripts":[
+        "{{template_dir}}/scripts/configure-buildagent.sh"
+    ],
+    "environment_vars":[
+        "MS_AGENT_URL={{user `ms_agent_url`}}",
+        "MS_AGENT_FILENAME={{user `ms_agent_filename`}}",
+        "MS_AGENT_PAT={{user `ms_agent_pat`}}",
+        "MS_AGENT_ORG_URL={{user `ms_agent_org_url`}}",
+        "MS_AGENT_POOL_NAME={{user `ms_agent_pool`}}"
+    ],
+    "execute_command": "sudo sh -c '{{ .Vars }} {{ .Path }}'"
+},
+  {
       "type": "shell",
       "inline": [
+          "sudo usermod -aG docker $USER",
           "sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config"
       ]
   }
