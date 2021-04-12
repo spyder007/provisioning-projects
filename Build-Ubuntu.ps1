@@ -55,9 +55,9 @@ $user_data_content | Set-Content "packerhttp\user-data"
 
 packer build -var-file "$VariableFile" -var "http=packerhttp" -var "output_dir=$OutputFolder" -var "mac_address=$macAddress" -var "vm_name=$machineName" "$TemplateFile"
 
-$vmFolder = [IO.Path]::Combine($OutputFolder, $variables.vm_name)
+$vmFolder = [IO.Path]::Combine($OutputFolder, $machineName)
 
 $vmcx = Get-ChildItem -Path "$vmFolder" -Recurse -Filter "*.vmcx"
 
 Import-VM -Path "$($vmcx.FullName)"
-Start-VM "$($variables.vm_name)"
+Start-VM "$($machineName)"

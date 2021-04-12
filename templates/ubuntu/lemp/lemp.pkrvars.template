@@ -1,0 +1,10 @@
+{
+    "vm_name": "ubuntu_vm",
+    "cpus": "2",
+    "memory": "2048",
+    "disk_size": "21440",
+    "username": "ubuntu",
+    "password": "ubuntu",
+    "files_dirs": "./templates/ubuntu/basic/files/,./templates/ubuntu/lemp/files/",
+    "provisioning_scripts": "./templates/ubuntu/basic/basic-prov.sh
+}

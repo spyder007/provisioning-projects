@@ -362,8 +362,7 @@
         "MS_AGENT_PAT={{user `ms_agent_pat`}}",
         "MS_AGENT_ORG_URL={{user `ms_agent_org_url`}}",
         "MS_AGENT_POOL_NAME={{user `ms_agent_pool`}}"
-    ],
-    "execute_command": "sudo sh -c '{{ .Vars }} {{ .Path }}'"
+    ]
 },
   {
       "type": "shell",
