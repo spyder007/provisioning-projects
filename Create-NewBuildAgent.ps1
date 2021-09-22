@@ -23,7 +23,7 @@ $env:PKR_VAR_ms_agent_pat = "$msAgentPAT"
 $env:PKR_VAR_ms_agent_url = "$msAgentUrl"
 $env:PKR_VAR_ms_agent_filename = "$msAgentFilename"
 $env:PKR_VAR_ms_agent_org_url= "$msAgentOrgUrl"
-$env:PKR_VAR_ms_agent_pool = "$msAgentPool"
+$env:PKR_VAR_ms_agent_pool_name = "$msAgentPool"
 
 ## Create and Provision agent
 .\Build-Ubuntu.ps1 ".\templates\buildagents\ubuntu-2004.json" .\templates\buildagents\http\ .\templates\buildagents\buildagent.pkrvars -provisionGroup "virtual" -OutputFolder "$OutputFolder" -machineName $machineName -provisionApi "$provisionApi"
