@@ -1,3 +1,26 @@
+<#
+        .SYNOPSIS
+        Create an ubuntu hyper-v image using Packer
+
+        .DESCRIPTION
+        Create an ubuntu hyper-v image using Packer
+
+        .PARAMETER TemplateFile
+        The location of the Packer template file (*.json)
+
+        .PARAMETER HostHttpFolder
+        The locatikon of the HostHTTP Folder.  This folder is mounted for the network installer to read.
+
+        .PARAMETER VariableFile
+        The location of the .pkvars file for this run
+
+        .PARAMETER machineName
+        The machine name
+
+        .EXAMPLE
+        PS> .\Build-Ubuntu.ps1 ".\templates\ubuntu\ubuntu-2004.json" .\templates\ubuntu\basic\http .\templates\ubuntu\basic\basic.pkvars -machinename ubuntuHost
+    #>
+
 param (
     [Parameter(Mandatory=$true,Position=1)]
 	$TemplateFile,
@@ -7,12 +30,9 @@ param (
 	$VariableFile,
     [Parameter(Position=4)]
     $OutputFolder="d:\\Virtual Machines\\",
-    $provisionApi="http://docker-dev.gerega.net:9001/",
-    [ValidateSet("physical", "virtual", "camera", "enduser")]
+    [Parameter(Position=5)]
     [String]
-    $provisionGroup,
-    [String]
-    $machineName=$null
+    $machineName=$null    
 )
 
 
@@ -29,12 +49,13 @@ if ($null -eq $machineName) {
     $machineName = $variables.vm_name
 }
 
-## Provision the machine in the Unifi Controller
-$token = ./Get-AuthToken.ps1 -scope "unifi.ipmanager"
-$newClient = ./Provision-UnifiClient.ps1 -authToken $token -apiUrl "$provisionApi" -group "$provisionGroup" -name "$($machineName)" -hostname "$($machineName)"
-
-$macAddress = $newClient.data.mac.Replace(":", "")
-Write-Host "Mac Address = $macAddress"
+$macAddress = ./Provision-UnifiClient.ps1 -name "$($machineName)" -hostname "$($machineName)"
+if ($null -eq $macAddress) {
+    Write-Host "Using random mac address"
+}
+else {
+    Write-Host "Mac Address = $macAddress"
+}
 
 ## crypt the password (unix style) so that it can go into the autoinstall folder
 $cryptedPass = (echo "$($variables.password)" | openssl passwd -6 -salt "FFFDFSDFSDF" -stdin)
@@ -53,7 +74,12 @@ $user_data_content = $user_data_content -replace "{{crypted_password}}", "$crypt
 $user_data_content = $user_data_content -replace "{{hostname}}", "$($machineName)"
 $user_data_content | Set-Content "packerhttp\user-data"
 
-packer build -var-file "$VariableFile" -var "http=packerhttp" -var "output_dir=$OutputFolder" -var "mac_address=$macAddress" -var "vm_name=$machineName" "$TemplateFile"
+if ($null -eq $macAddress) {
+    packer build -var-file "$VariableFile" -var "http=packerhttp" -var "output_dir=$OutputFolder" -var "vm_name=$machineName" "$TemplateFile"
+}
+else {
+    packer build -var-file "$VariableFile" -var "http=packerhttp" -var "output_dir=$OutputFolder" -var "mac_address=$macAddress" -var "vm_name=$machineName" "$TemplateFile"
+}
 
 $vmFolder = [IO.Path]::Combine($OutputFolder, $machineName)
 

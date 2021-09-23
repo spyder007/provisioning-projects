@@ -1,11 +1,5 @@
 param (
     [Parameter(Mandatory=$true)]
-    $authToken,
-    [Parameter(Mandatory=$true)]
-    $apiUrl,
-    [Parameter(Mandatory=$true)]
-    $group,
-    [Parameter(Mandatory=$true)]
     $name,
     [Parameter(Mandatory=$true)]
     $hostName,
@@ -13,11 +7,21 @@ param (
     $syncDns=$true
 )
 
+$apiUrl = [System.Environment]::GetEnvironmentVariable('API_PROVISION_URL',[System.EnvironmentVariableTarget]::User)
+
+if ($null -eq $apiUrl) {
+    return $null
+}
+
+$provisionGroup = [System.Environment]::GetEnvironmentVariable('API_PROVISION_GROUP',[System.EnvironmentVariableTarget]::User)
+
+$authToken = ./Get-AuthToken.ps1 -scope "unifi.ipmanager"
+
 $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
 $headers.Add("Authorization", "Bearer $authToken")
 
 $body = @{
-    group="$group"
+    group="$provisionGroup"
     name="$name"
     hostName="$hostName"
     static_ip=$staticIp
@@ -30,4 +34,6 @@ $bodyJson = $body | ConvertTo-Json
 
 $result = Invoke-RestMethod "$apiUrl/client/provision" -headers $headers -method Post -Body $bodyJson -ContentType 'application/json'
 
-return $result;
+$macAddress = $result.data.mac.Replace(":", "")
+
+return $macAddress;

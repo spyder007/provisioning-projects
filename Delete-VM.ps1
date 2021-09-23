@@ -5,19 +5,15 @@ param (
     $userName,
     [Parameter(Mandatory=$true)]
     $hyperVisor,
-    [Parameter()]
-    $provisionApi="http://your.unifi.contoller/",
     [bool]
     $isMsAgent=$false,
     [Parameter()]
-    $msAgentPAT,
+    $msAgentPAT
 )
 
 if ($isMsAgent) {
   ssh "$userName@$machineName" "export MS_AGENT_PAT=$msAgentPAT;cd /imagegeneration; sudo chmod 777 remove-agent.sh; ./remove-agent.sh"
 }
-
-$provisionToken = ./Get-AuthToken.ps1 -scope "unifi.ipmanager"
 
 $vm = Get-Vm -ComputerName $hyperVisor $machineName
 if ($null -eq $vm) {
@@ -25,19 +21,13 @@ if ($null -eq $vm) {
     return -1
 }
 
-
 $macAddress = $vm.NetworkAdapters[0].MacAddress
 $macAddress = $macAddress -replace '..(?!$)', '$&:'
 
 Write-Host "Deleting Mac Address $macAddress from Unifi Controller"
-$deleteResult = ./Delete-UnifiClient.ps1 $provisionToken $provisionApi $macAddress
+$deleteResult = ./Delete-UnifiClient.ps1 $provisionToken $macAddress
 
-if ($false -eq $deleteResult.Success) {
-    Write-Error "Error deleting result: $($deleteResult.Errors)"
-    return -1
-}
-
-$vmPath = "\\$hyperVisor\{0}" -f ($vm.Path -replace "^(\w{1}):(.*)", '$1$$$2')
+#$vmPath = "\\$hyperVisor\{0}" -f ($vm.Path -replace "^(\w{1}):(.*)", '$1$$$2')
 
 Write-Host "Stopping VM" -nonewline
 Stop-Vm -Name $machineName -ComputerName $hyperVisor
