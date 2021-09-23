@@ -17,7 +17,7 @@ if ([System.String]::IsNullOrWhiteSpace($clientId)) {
 }
 
 if ([System.String]::IsNullOrWhiteSpace($clientSecret)) {
-    $clientSecret - $env:API_CLIENT_SECRET
+    $clientSecret = $env:API_CLIENT_SECRET
     if ($null -eq $clientSecret) {
         $clientSecret = [System.Environment]::GetEnvironmentVariable('API_CLIENT_SECRET',[System.EnvironmentVariableTarget]::User) 
     }
