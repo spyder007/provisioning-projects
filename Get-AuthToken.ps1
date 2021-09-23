@@ -10,23 +10,38 @@ param (
 )
 
 if ([System.String]::IsNullOrWhiteSpace($clientId)) {
-    $clientId = [System.Environment]::GetEnvironmentVariable('API_CLIENT_ID',[System.EnvironmentVariableTarget]::User)   
+    $clientId = $env:API_CLIENT_ID;
+    if ($null -eq $clientId) {
+        $clientId = [System.Environment]::GetEnvironmentVariable('API_CLIENT_ID',[System.EnvironmentVariableTarget]::User)   
+    }
 }
 
 if ([System.String]::IsNullOrWhiteSpace($clientSecret)) {
-    $clientSecret = [System.Environment]::GetEnvironmentVariable('API_CLIENT_SECRET',[System.EnvironmentVariableTarget]::User) 
+    $clientSecret - $env:API_CLIENT_SECRET
+    if ($null -eq $clientSecret) {
+        $clientSecret = [System.Environment]::GetEnvironmentVariable('API_CLIENT_SECRET',[System.EnvironmentVariableTarget]::User) 
+    }
 }
 
 if ([System.String]::IsNullOrWhiteSpace($userName)) {
-    $userName = [System.Environment]::GetEnvironmentVariable('API_USERNAME',[System.EnvironmentVariableTarget]::User)
+    $userName = $env:API_USERNAME
+    if ($null -eq $userName) {
+        $userName = [System.Environment]::GetEnvironmentVariable('API_USERNAME',[System.EnvironmentVariableTarget]::User)
+    }
 }
 
 if ([System.String]::IsNullOrWhiteSpace($password)) {
-    $password = [System.Environment]::GetEnvironmentVariable('API_PASSWORD',[System.EnvironmentVariableTarget]::User)
+    $password = $env:API_PASSWORD
+    if ($null -eq $password) {
+        $password = [System.Environment]::GetEnvironmentVariable('API_PASSWORD',[System.EnvironmentVariableTarget]::User)
+    }
 }
 
 if ([System.String]::IsNullOrWhiteSpace($authUrl)) {
-    $authUrl = [System.Environment]::GetEnvironmentVariable('API_AUTH_URL',[System.EnvironmentVariableTarget]::User)
+    $authUrl = $env:API_AUTH_URL
+    if ($null -eq $authUrl) {
+        $authUrl = [System.Environment]::GetEnvironmentVariable('API_AUTH_URL',[System.EnvironmentVariableTarget]::User)
+    }
 }
 
 $body = @{

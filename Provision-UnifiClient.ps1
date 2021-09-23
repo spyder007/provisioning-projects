@@ -7,13 +7,20 @@ param (
     $syncDns=$true
 )
 
-$apiUrl = [System.Environment]::GetEnvironmentVariable('API_PROVISION_URL',[System.EnvironmentVariableTarget]::User)
+$apiUrl = $env:API_PROVISION_URL
+if ($null -eq $apiUrl) {
+    $apiUrl = [System.Environment]::GetEnvironmentVariable('API_PROVISION_URL',[System.EnvironmentVariableTarget]::User)
+}
+
 
 if ($null -eq $apiUrl) {
     return $null
 }
 
-$provisionGroup = [System.Environment]::GetEnvironmentVariable('API_PROVISION_GROUP',[System.EnvironmentVariableTarget]::User)
+$provisionGroup = $env:API_PROVISION_GROUP
+if ($null -eq $provisionGroup) {
+    $provisionGroup = [System.Environment]::GetEnvironmentVariable('API_PROVISION_GROUP',[System.EnvironmentVariableTarget]::User)
+}
 
 $authToken = ./Get-AuthToken.ps1 -scope "unifi.ipmanager"
 
