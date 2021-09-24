@@ -6,9 +6,9 @@ param (
     [Parameter()]
     $msAgentPool="Default",
     [Parameter()]
-    $msAgentUrl="https://vstsagentpackage.azureedge.net/agent/2.184.2",
+    $msAgentUrl="https://vstsagentpackage.azureedge.net/agent/2.192.0",
     [Parameter()]
-    $msAgentFilename="vsts-agent-linux-x64-2.184.2.tar.gz",
+    $msAgentFilename="vsts-agent-linux-x64-2.192.0.tar.gz",
     [Parameter()]
     $OutputFolder="d:\\Virtual Machines\\"
 )
@@ -25,4 +25,3 @@ $env:PKR_VAR_ms_agent_pool_name = "$msAgentPool"
 
 ## Create and Provision agent
 .\Build-Ubuntu.ps1 ".\templates\buildagents\ubuntu-2004.json" .\templates\buildagents\http\ .\templates\buildagents\buildagent.pkrvars -OutputFolder "$OutputFolder" -machineName $machineName
-
