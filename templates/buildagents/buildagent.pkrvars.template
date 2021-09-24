@@ -4,5 +4,8 @@
     "memory": "2048",
     "disk_size": "21440",
     "username": "ubuntu",
-    "password": "ubuntu"
+    "password": "ubuntu",
+    "output_dir": "d:\\Virtual Machines\\",
+    "files_dirs": "./templates/ubuntu/basic/files/",
+    "provisioning_scripts": "./templates/buildagents/scripts/buildagent-prov.sh"
 }
