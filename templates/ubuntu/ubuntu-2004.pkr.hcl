@@ -10,8 +10,8 @@ variable "disk_size" {
 }
 
 variable "files_dirs" {
-  type    = string
-  default = "./templates/ubuntu/basic/files/"
+  type    = list(string)
+  default = ["./templates/ubuntu/basic/files/"]
 }
 
 variable "http" {
@@ -50,8 +50,8 @@ variable "password" {
 }
 
 variable "provisioning_scripts" {
-  type    = string
-  default = "./templates/ubuntu/basic/basic-prov.sh"
+  type    = list(string)
+  default = ["./templates/ubuntu/basic/basic-prov.sh"]
 }
 
 variable "switch" {
