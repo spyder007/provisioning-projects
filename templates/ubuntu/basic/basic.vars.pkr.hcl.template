@@ -1,0 +1,44 @@
+variable "cpus" {
+  type    = string
+  default = "2"
+}
+
+variable "disk_size" {
+  type    = string
+  default = "21440"
+}
+
+variable "files_dirs" {
+  type    = string
+  default = "./templates/ubuntu/basic/files/"
+}
+
+variable "memory" {
+  type    = string
+  default = "2048"
+}
+
+variable "output_dir" {
+  type = string
+  default = "./output"
+}
+
+variable "password" {
+  type    = string
+  default = "ubuntu"
+}
+
+variable "provisioning_scripts" {
+  type    = string
+  default = "./templates/ubuntu/basic/basic-prov.sh"
+}
+
+variable "username" {
+  type    = string
+  default = "ubuntu"
+}
+
+variable "vm_name" {
+  type    = string
+  default = "ubuntu_vm"
+}
