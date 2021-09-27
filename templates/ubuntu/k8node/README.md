@@ -27,7 +27,7 @@ See [the main readme][Home] for details on usage
 * kubeadm
 
 ## Notes
-This template builds off of the [Containerd][Containerd] image.  When copying `k8node.pkrvars.template` to your .pkvars file, the `files_dirs` and `provisioning_scripts` settings in the template should be kept and added on to as needed.
+This template builds off of the [Containerd][Containerd] image.  When copying `k8node.pkrvars.hcl.template` to your .pkrvars.hcl file, the `files_dirs` and `provisioning_scripts` settings in the template should be kept and added on to as needed.
 
 This image requires the builder to use [../basic/http](../basic/http) as the `http` folder.  See the script usage section on the [the main readme][Home] for details.
 
