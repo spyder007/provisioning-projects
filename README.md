@@ -31,7 +31,7 @@ Since Packer automatically exports the Hyper-V image, this script performs and i
 #### Usage
 
 ```powershell
-.\Build-Ubuntu.ps1 ".\Templates\ubuntu\ubuntu-2004.json" .\templates\ubuntu\basic\http .\templates\ubuntu\bsaic\basic.pkrvars -machinename newhost
+.\Build-Ubuntu.ps1 ".\Templates\ubuntu\ubuntu-2004.pkr.hcl" .\templates\ubuntu\basic\http .\templates\ubuntu\basic\basic.pkrvars.hcl -machinename newhost
 ```
 
 ### Create-NewBuildAgent.ps1
@@ -52,12 +52,12 @@ git clone --recurse-submodules https://github.com/spyder007/provisioning-project
 This will populate the proper commit of the ./templates/buildagents/lib folder, which is used for provisioning these agents.
 
 #### Usage
-* Make sure you create `./templates/buildagents/buildagent.pkrvars` by copying [./templates/buildagents/buildagent.pkrvars.template](./templates/buildagents/buildagent.pkrvars.template) and modifying the data accordingly
+* Make sure you create `./templates/buildagents/buildagent.pkrvars.hcl` by copying [./templates/buildagents/buildagent.pkrvars.hcl.template](./templates/buildagents/buildagent.pkrvars.template) and modifying the data accordingly
 * Make sure you have a properly formatted `authorized_keys` file in your `files_dirs` location (rom the above pkrvars file)
 * Create a Personal Access Token [PAT](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page) that has permissions to add and modify build agents.
 
 ```powershell
-.\Create-NewBuildAgent.ps1 -msAgentPAT "<your PAT>" -msAgentOrgUrl "https://dev.azure.com/<yourOrgName>"
+.\Create-NewBuildAgent.ps1
 ```
 
 ## Unifi Controller Provisioning

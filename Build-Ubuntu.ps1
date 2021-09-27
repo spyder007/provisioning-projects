@@ -35,18 +35,23 @@ param (
     $machineName=$null    
 )
 
-
+$vars = @{}
 ## Grab the variables file
 if (($null -ne $VariableFile) -and (Test-Path $VariableFile)) {
-    $variables = Get-Content $VariableFile | ConvertFrom-Json    
+    $variableLines = Get-Content $VariableFile
+    
+    foreach ($varLine in $variableLines) {
+        if ($varLine -match "(?<var>[^=]*)=(?<value>.*)") {
+            $vars[$matches.var.Trim().ToLower()] = $matches.value.Trim().Trim("`"")
+        }
+    }
 }
 else {
     Write-Error "Variable file is required";
     return -1;
 }
-
 if ($null -eq $machineName) {
-    $machineName = $variables.vm_name
+    $machineName = $vars["vm_name"]
 }
 
 $macAddress = ./Provision-UnifiClient.ps1 -name "$($machineName)" -hostname "$($machineName)"
@@ -58,7 +63,7 @@ else {
 }
 
 ## crypt the password (unix style) so that it can go into the autoinstall folder
-$cryptedPass = (echo "$($variables.password)" | openssl passwd -6 -salt "FFFDFSDFSDF" -stdin)
+$cryptedPass = (echo "$($vars["password"])" | openssl passwd -6 -salt "FFFDFSDFSDF" -stdin)
 
 if (Test-Path "packerhttp") {
     Remove-Item -Force -Recurse "packerhttp"
@@ -69,7 +74,7 @@ mkdir "packerhttp" | Out-Null
 Copy-Item -Recurse "$HostHttpFolder\*" "packerhttp"
 
 $user_data_content = Get-Content "packerhttp\user-data"
-$user_data_content = $user_data_content -replace "{{username}}", "$($variables.username)"
+$user_data_content = $user_data_content -replace "{{username}}", "$($vars["username"])"
 $user_data_content = $user_data_content -replace "{{crypted_password}}", "$cryptedPass"
 $user_data_content = $user_data_content -replace "{{hostname}}", "$($machineName)"
 $user_data_content | Set-Content "packerhttp\user-data"

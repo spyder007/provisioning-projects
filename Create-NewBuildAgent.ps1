@@ -1,14 +1,4 @@
 param (
-    [Parameter(Mandatory=$true)]
-    $msAgentPAT,
-    [Parameter(Mandatory=$true)]
-    $msAgentOrgUrl="https://dev.azure.com/<your_org>",
-    [Parameter()]
-    $msAgentPool="Default",
-    [Parameter()]
-    $msAgentUrl="https://vstsagentpackage.azureedge.net/agent/2.184.2",
-    [Parameter()]
-    $msAgentFilename="vsts-agent-linux-x64-2.184.2.tar.gz",
     [Parameter()]
     $OutputFolder="d:\\Virtual Machines\\"
 )
@@ -17,12 +7,5 @@ param (
 $agentDate=(Get-Date).ToString("yyMMdd")
 $machineName = "agt-ubt-$agentDate"
 
-$env:PKR_VAR_ms_agent_pat = "$msAgentPAT"
-$env:PKR_VAR_ms_agent_url = "$msAgentUrl"
-$env:PKR_VAR_ms_agent_filename = "$msAgentFilename"
-$env:PKR_VAR_ms_agent_org_url= "$msAgentOrgUrl"
-$env:PKR_VAR_ms_agent_pool_name = "$msAgentPool"
-
 ## Create and Provision agent
-.\Build-Ubuntu.ps1 ".\templates\buildagents\ubuntu-2004.json" .\templates\buildagents\http\ .\templates\buildagents\buildagent.pkrvars -OutputFolder "$OutputFolder" -machineName $machineName
-
+.\Build-Ubuntu.ps1 ".\templates\buildagents\ubuntu-2004.pkr.hcl" .\templates\buildagents\http\ .\templates\buildagents\buildagent.pkrvars.hcl -OutputFolder "$OutputFolder" -machineName $machineName

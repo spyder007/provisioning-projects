@@ -2,7 +2,6 @@
 
 This folder contains the files necessary for provisioning a basic Ubuntu headless server.
 
-
 ## Usage
 
 See [the main readme]:[Home] for details on usage

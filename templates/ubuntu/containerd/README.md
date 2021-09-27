@@ -25,7 +25,7 @@ See [the main readme][Home] for details on usage
 * containerd
 
 ## Notes
-This template builds off of the [Basic][Basic] image.  When copying `containerd.pkrvars.template` to your .pkvars file, the `files_dirs` and `provisioning_scripts` settings in the template should be kept and added on to as needed.
+This template builds off of the [Basic][Basic] image.  When copying `containerd.pkrvars.hcl.template` to your .pkrvars.hcl file, the `files_dirs` and `provisioning_scripts` settings in the template should be kept and added on to as needed.
 
 This image requires the builder to use [../basic/http](../basic/http) as the `http` folder.  See the script usage section on the [the main readme][Home] for details.
 
