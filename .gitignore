@@ -2,3 +2,4 @@ packer_cache/
 packerhttp/
 **/*.pkrvars
 **/authorized_keys
+**/*.pkrvars.hcl
