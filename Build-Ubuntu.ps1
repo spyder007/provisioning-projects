@@ -38,7 +38,19 @@ param (
 
 ## Grab the variables file
 if (($null -ne $VariableFile) -and (Test-Path $VariableFile)) {
-    $variables = Get-Content $VariableFile | ConvertFrom-Json    
+    $inspectResult = packer inspect "$VariableFile" -machine-readable
+    
+    if ($inspectResult[1] -match "var\.username:\s`"(?<username>[^`"]*)`"") {
+        $variableUserName = $Matches.username
+    }
+
+    if ($inspectResult[1] -match "var\.password:\s`"(?<password>[^`"]*)`"") {
+        $variablePassword = $Matches.password
+    }
+
+    if ($inspectResult[1] -match "var\.vm_name:\s`"(?<vmname>[^`"]*)`"") {
+        $variableMachineName = $Matches.vmname
+    }
 }
 else {
     Write-Error "Variable file is required";
@@ -46,7 +58,7 @@ else {
 }
 
 if ($null -eq $machineName) {
-    $machineName = $variables.vm_name
+    $machineName = $variableMachineName
 }
 
 $macAddress = ./Provision-UnifiClient.ps1 -name "$($machineName)" -hostname "$($machineName)"
@@ -58,7 +70,7 @@ else {
 }
 
 ## crypt the password (unix style) so that it can go into the autoinstall folder
-$cryptedPass = (echo "$($variables.password)" | openssl passwd -6 -salt "FFFDFSDFSDF" -stdin)
+$cryptedPass = (echo "$($variablePassword)" | openssl passwd -6 -salt "FFFDFSDFSDF" -stdin)
 
 if (Test-Path "packerhttp") {
     Remove-Item -Force -Recurse "packerhttp"
@@ -69,7 +81,7 @@ mkdir "packerhttp" | Out-Null
 Copy-Item -Recurse "$HostHttpFolder\*" "packerhttp"
 
 $user_data_content = Get-Content "packerhttp\user-data"
-$user_data_content = $user_data_content -replace "{{username}}", "$($variables.username)"
+$user_data_content = $user_data_content -replace "{{username}}", "$($variableUserName)"
 $user_data_content = $user_data_content -replace "{{crypted_password}}", "$cryptedPass"
 $user_data_content = $user_data_content -replace "{{hostname}}", "$($machineName)"
 $user_data_content | Set-Content "packerhttp\user-data"
