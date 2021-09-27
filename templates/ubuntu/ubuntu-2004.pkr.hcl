@@ -21,12 +21,12 @@ variable "http" {
 
 variable "iso_checksum" {
   type    = string
-  default = "d1f2bf834bbe9bb43faf16f9be992a6f3935e65be0edece1dee2aa6eb1767423"
+  default = "f8e3086f3cea0fb3fefb29937ab5ed9d19e767079633960ccb50e76153effc98"
 }
 
 variable "iso_url" {
   type    = string
-  default = "https://releases.ubuntu.com/20.04.2/ubuntu-20.04.2-live-server-amd64.iso"
+  default = "https://releases.ubuntu.com/20.04.3/ubuntu-20.04.3-live-server-amd64.iso"
 }
 
 variable "mac_address" {
