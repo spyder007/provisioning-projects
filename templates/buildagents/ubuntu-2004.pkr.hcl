@@ -89,6 +89,12 @@ variable "ms_agent_pool" {
   default = "Default"
 }
 
+variable "ms_agent_pat" {
+  type    = string
+  default = ""
+  sensitive = true
+}
+
 variable "ms_agent_url" {
   type    = string
   default = "https://vstsagentpackage.azureedge.net/agent/2.192.0"
