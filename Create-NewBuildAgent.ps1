@@ -8,4 +8,4 @@ $agentDate=(Get-Date).ToString("yyMMdd")
 $machineName = "agt-ubt-$agentDate"
 
 ## Create and Provision agent
-.\Build-Ubuntu.ps1 ".\templates\buildagents\ubuntu-2004.json" .\templates\buildagents\http\ .\templates\buildagents\buildagent.pkrvars -OutputFolder "$OutputFolder" -machineName $machineName
+.\Build-Ubuntu.ps1 ".\templates\buildagents\ubuntu-2004.pkr.hcl" .\templates\buildagents\http\ .\templates\buildagents\buildagent.pkrvars.hcl -OutputFolder "$OutputFolder" -machineName $machineName
