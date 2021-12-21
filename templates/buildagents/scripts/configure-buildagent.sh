@@ -1,3 +1,7 @@
+chmod go-w ~/
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+
 sudo mkdir /myagent 
 cd /myagent
 sudo wget "$MS_AGENT_URL/$MS_AGENT_FILENAME"

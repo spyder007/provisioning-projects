@@ -6,7 +6,4 @@ sudo apt update
 sudo apt upgrade -y
 mkdir ~/.ssh
 cp /imagegeneration/authorized_keys ~/.ssh/
-chmod go-w ~/
-chmod 700 ~/.ssh
-chmod 600 ~/.ssh/authorized_keys
 
