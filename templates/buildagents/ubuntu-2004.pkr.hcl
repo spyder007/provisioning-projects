@@ -297,6 +297,11 @@ build {
   }
 
   provisioner "shell" {
+    execute_command   = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
+    scripts           = ["${path.root}/lib/virtual-environments/images/linux/scripts/base/snap.sh"]
+  }
+
+  provisioner "shell" {
     execute_command   = "/bin/sh -c '{{ .Vars }} {{ .Path }}'"
     expect_disconnect = true
     scripts           = ["${path.root}/lib/virtual-environments/images/linux/scripts/base/reboot.sh"]
