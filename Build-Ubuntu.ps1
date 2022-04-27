@@ -63,7 +63,7 @@ else {
 }
 
 ## crypt the password (unix style) so that it can go into the autoinstall folder
-$cryptedPass = (echo "$($vars["password"])" | openssl passwd -6 -salt "FFFDFSDFSDF" -stdin)
+$cryptedPass = (Write-Output "$($vars["password"])" | openssl passwd -6 -salt "FFFDFSDFSDF" -stdin)
 
 if (Test-Path "packerhttp") {
     Remove-Item -Force -Recurse "packerhttp"
