@@ -41,6 +41,8 @@ $bodyJson = $body | ConvertTo-Json
 
 $result = Invoke-RestMethod "$apiUrl/client/provision" -headers $headers -method Post -Body $bodyJson -ContentType 'application/json'
 
-$macAddress = $result.data.mac.Replace(":", "")
-
-return $macAddress;
+return @{
+    RawMacAddress = $result.data.mac.Replace(":", "")
+    MacAddress = $result.data.mac
+    IpAddress = $result.data.fixed_ip
+}

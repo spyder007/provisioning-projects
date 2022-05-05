@@ -59,7 +59,7 @@ if ($null -eq $macAddress) {
     Write-Host "Using random mac address"
 }
 else {
-    Write-Host "Mac Address = $macAddress"
+    Write-Host "Mac Address = $($macAddress.RawMacAddress)"
 }
 
 ## crypt the password (unix style) so that it can go into the autoinstall folder
@@ -79,16 +79,27 @@ $user_data_content = $user_data_content -replace "{{crypted_password}}", "$crypt
 $user_data_content = $user_data_content -replace "{{hostname}}", "$($machineName)"
 $user_data_content | Set-Content "packerhttp\user-data"
 
-if ($null -eq $macAddress) {
+$global:LASTEXITCODE=0
+$macArgument = ""
+if ($null -ne $macAddress) {
+    $macArgument = "-var `"mac_address=$($macAddress.RawMacAddress)`""
     packer build -var-file "$VariableFile" -var "http=packerhttp" -var "output_dir=$OutputFolder" -var "vm_name=$machineName" "$TemplateFile"
 }
+
+Invoke-Expression "packer build -var-file `"$VariableFile`" -var `"http=packerhttp`" -var `"output_dir=$OutputFolder`" $macArgument -var `"vm_name=$machineName`" `"$TemplateFile`""
+
+$success = ($global:LASTEXITCODE -eq 0);
+
+if ($success) {
+    $vmFolder = [IO.Path]::Combine($OutputFolder, $machineName)
+    $vmcx = Get-ChildItem -Path "$vmFolder" -Recurse -Filter "*.vmcx"
+
+    Import-VM -Path "$($vmcx.FullName)"
+    Start-VM "$($machineName)"
+}
 else {
-    packer build -var-file "$VariableFile" -var "http=packerhttp" -var "output_dir=$OutputFolder" -var "mac_address=$macAddress" -var "vm_name=$machineName" "$TemplateFile"
+    if ($null -ne $macAddress) {
+        ./Delete-UnifiClient.ps1 -macAddress $macAddress.MacAddress
+    }
 }
 
-$vmFolder = [IO.Path]::Combine($OutputFolder, $machineName)
-
-$vmcx = Get-ChildItem -Path "$vmFolder" -Recurse -Filter "*.vmcx"
-
-Import-VM -Path "$($vmcx.FullName)"
-Start-VM "$($machineName)"
