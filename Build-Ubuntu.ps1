@@ -84,7 +84,6 @@ $global:LASTEXITCODE=0
 $macArgument = ""
 if ($null -ne $macAddress) {
     $macArgument = "-var `"mac_address=$($macAddress.RawMacAddress)`""
-    packer build -var-file "$VariableFile" -var "http=packerhttp" -var "output_dir=$OutputFolder" -var "vm_name=$machineName" "$TemplateFile"
 }
 
 Invoke-Expression "packer build -var-file `"$VariableFile`" -var `"http=packerhttp`" -var `"output_dir=$OutputFolder`" $macArgument -var `"vm_name=$machineName`" `"$TemplateFile`""
