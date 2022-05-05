@@ -59,6 +59,7 @@ if ($null -eq $macAddress) {
     Write-Host "Using random mac address"
 }
 else {
+    $macAddress | Format-Table
     Write-Host "Mac Address = $($macAddress.RawMacAddress)"
 }
 
