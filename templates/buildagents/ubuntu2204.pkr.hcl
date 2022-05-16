@@ -36,7 +36,12 @@ variable "image_folder" {
 
 variable "image_os" {
   type    = string
-  default = "ubuntu20"
+  default = "ubuntu22"
+}
+
+variable "image_repository_path" {
+  type    = string
+  default = "${env("IMAGEREPOSITORYPATH")}"
 }
 
 variable "image_version" {
@@ -56,12 +61,12 @@ variable "installer_script_folder" {
 
 variable "iso_checksum" {
   type    = string
-  default = "f8e3086f3cea0fb3fefb29937ab5ed9d19e767079633960ccb50e76153effc98"
+  default = "84aeaf7823c8c61baa0ae862d0a06b03409394800000b3235854a6b38eb4856f"
 }
 
 variable "iso_url" {
   type    = string
-  default = "https://releases.ubuntu.com/20.04.3/ubuntu-20.04.3-live-server-amd64.iso"
+  default = "https://releases.ubuntu.com/22.04/ubuntu-22.04-live-server-amd64.iso"
 }
 
 variable "mac_address" {
@@ -76,7 +81,7 @@ variable "memory" {
 
 variable "ms_agent_filename" {
   type    = string
-  default = "vsts-agent-linux-x64-2.200.2.tar.gz"
+  default = "vsts-agent-linux-x64-2.202.1.tar.gz"
 }
 
 variable "ms_agent_org_url" {
@@ -97,7 +102,7 @@ variable "ms_agent_pat" {
 
 variable "ms_agent_url" {
   type    = string
-  default = "https://vstsagentpackage.azureedge.net/agent/2.200.2"
+  default = "https://vstsagentpackage.azureedge.net/agent/2.202.1"
 }
 
 variable "output_dir" {
@@ -146,7 +151,7 @@ variable "dockerhub_password" {
 }
 
 source "hyperv-iso" "ubuntu_vm" {
-  boot_command        = ["<esc><wait3>", "linux /casper/vmlinuz quiet autoinstall net.ifnames=0 biosdevname=0 ip=dhcp ipv6.disable=1 ds=nocloud-net\\;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ <enter>", "initrd /casper/initrd <enter>", "boot <enter>"]
+  boot_command        = ["<esc><wait>", "c", "linux /casper/vmlinuz quiet autoinstall net.ifnames=0 biosdevname=0 ip=dhcp ipv6.disable=1 ds=nocloud-net\\;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ <enter>", "initrd /casper/initrd <enter>", "boot <enter>"]
   boot_wait           = "1s"
   cpus                = "${var.cpus}"
   disk_size           = "${var.disk_size}"
@@ -234,7 +239,7 @@ build {
 
   provisioner "file" {
     destination = "${var.installer_script_folder}/toolset.json"
-    source      = "${path.root}/lib/virtual-environments/images/linux/toolsets/toolset-2004.json"
+    source      = "${path.root}/lib/virtual-environments/images/linux/toolsets/toolset-2204.json"
   }
 
   provisioner "shell" {
@@ -275,7 +280,54 @@ build {
   provisioner "shell" {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DEBIAN_FRONTEND=noninteractive"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/azcopy.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/azure-cli.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/azure-devops-cli.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/basic.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/bicep.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/aliyun-cli.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/apache.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/aws.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/clang.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/swift.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/cmake.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/codeql-bundle.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/containers.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/dotnetcore-sdk.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/erlang.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/firefox.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/gcc.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/gfortran.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/git.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/github-cli.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/google-chrome.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/google-cloud-sdk.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/haskell.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/heroku.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/hhvm.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/java-tools.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/kubernetes-tools.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/oc.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/leiningen.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/miniconda.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/mono.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/kotlin.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/mysql.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/mssql-cmd-tools.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/sqlpackage.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/nginx.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/nvm.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/nodejs.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/bazel.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/oras-cli.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/phantomjs.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/php.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/postgresql.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/pulumi.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/ruby.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/r.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/rust.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/julia.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/sbt.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/selenium.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/terraform.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/packer.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/vcpkg.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/dpkg-config.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/mongodb.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/android.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/yq.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/pypy.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/python.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/graalvm.sh"]
+    scripts          = [
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/azcopy.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/azure-cli.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/azure-devops-cli.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/basic.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/bicep.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/aliyun-cli.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/apache.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/aws.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/clang.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/cmake.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/codeql-bundle.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/dotnetcore-sdk.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/gcc.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/gfortran.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/git.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/github-cli.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/google-chrome.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/google-cloud-sdk.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/haskell.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/heroku.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/kubernetes-tools.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/oc.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/miniconda.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/mysql.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/sqlpackage.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/nginx.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/nvm.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/nodejs.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/bazel.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/oras-cli.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/php.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/postgresql.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/pulumi.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/ruby.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/r.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/rust.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/julia.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/sbt.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/terraform.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/packer.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/vcpkg.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/dpkg-config.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/yq.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/pypy.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/python.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/graalvm.sh"
+                        ]
   }
 
   provisioner "shell" {
