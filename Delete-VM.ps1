@@ -11,6 +11,8 @@ param (
     $msAgentPAT
 )
 
+Import-Module ./Unifi.psm1
+
 if ($isMsAgent) {
   ssh "$userName@$machineName" "export MS_AGENT_PAT=$msAgentPAT;cd /imagegeneration; sudo chmod 777 remove-agent.sh; ./remove-agent.sh"
 }
@@ -25,7 +27,7 @@ $macAddress = $vm.NetworkAdapters[0].MacAddress
 $macAddress = $macAddress -replace '..(?!$)', '$&:'
 
 Write-Host "Deleting Mac Address $macAddress from Unifi Controller"
-$deleteResult = ./Delete-UnifiClient.ps1 $provisionToken $macAddress
+$deleteResult = Remove-UnifiClient $provisionToken $macAddress
 
 #$vmPath = "\\$hyperVisor\{0}" -f ($vm.Path -replace "^(\w{1}):(.*)", '$1$$$2')
 

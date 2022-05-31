@@ -35,6 +35,8 @@ param (
     $machineName=$null    
 )
 
+Import-Module ./Unifi.psm1
+
 $vars = @{}
 ## Grab the variables file
 if (($null -ne $VariableFile) -and (Test-Path $VariableFile)) {
@@ -54,7 +56,7 @@ if ($null -eq $machineName) {
     $machineName = $vars["vm_name"]
 }
 
-$macAddress = ./Provision-UnifiClient.ps1 -name "$($machineName)" -hostname "$($machineName)"
+$macAddress = Invoke-ProvisionUnifiClient -name "$($machineName)" -hostname "$($machineName)"
 if ($null -eq $macAddress) {
     Write-Host "Using random mac address"
 }
@@ -99,7 +101,7 @@ if ($success) {
 }
 else {
     if ($null -ne $macAddress) {
-        ./Delete-UnifiClient.ps1 -macAddress $macAddress.MacAddress
+        Remove-UnifiClient -macAddress $macAddress.MacAddress
     }
 }
 
