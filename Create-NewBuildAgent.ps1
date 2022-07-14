@@ -1,6 +1,6 @@
 param (
     [Parameter()]
-    [ValidateSet("ubuntu-22.04", "ubuntu-20.04")]
+    [ValidateSet("ubuntu-2204", "ubuntu-2004")]
     $type,
     [Parameter()]
     $OutputFolder="d:\\Virtual Machines\\"
