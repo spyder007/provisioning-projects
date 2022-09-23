@@ -85,7 +85,7 @@ source "hyperv-iso" "ubuntu_vm" {
   output_directory    = "${var.output_dir}${var.vm_name}\\"
   shutdown_command    = "sudo -S -E shutdown -P now"
   ssh_password        = "${var.password}"
-  ssh_timeout         = "20m"
+  ssh_timeout         = "1h"
   ssh_username        = "${var.username}"
   switch_name         = "${var.switch}"
   vm_name             = "${var.vm_name}"
