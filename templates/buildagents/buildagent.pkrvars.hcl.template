@@ -9,5 +9,5 @@ files_dirs = ["./templates/ubuntu/basic/files/"]
 ms_agent_org_url = ""
 ms_agent_pat = ""
 ms_agent_pool = "Default"
-ms_agent_url = "https://vstsagentpackage.azureedge.net/agent/2.192.0"
-ms_agent_filename = "vsts-agent-linux-x64-2.192.0.tar.gz"
+ms_agent_url = "https://vstsagentpackage.azureedge.net/agent/2.211.1"
+ms_agent_filename = "vsts-agent-linux-x64-2.211.1.tar.gz"

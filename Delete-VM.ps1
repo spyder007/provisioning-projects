@@ -24,10 +24,10 @@ if ($null -eq $vm) {
 }
 
 $macAddress = $vm.NetworkAdapters[0].MacAddress
-$macAddress = $macAddress -replace '..(?!$)', '$&:'
+$macAddress = ($macAddress -replace '..(?!$)', '$&:').ToLower();
 
 Write-Host "Deleting Mac Address $macAddress from Unifi Controller"
-$deleteResult = Remove-UnifiClient $provisionToken $macAddress
+$deleteResult = Remove-UnifiClient $macAddress
 
 #$vmPath = "\\$hyperVisor\{0}" -f ($vm.Path -replace "^(\w{1}):(.*)", '$1$$$2')
 
