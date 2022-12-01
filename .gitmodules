@@ -1,4 +1,4 @@
 [submodule "templates/buildagents/lib/virtual-environments"]
 	path = templates/buildagents/lib/virtual-environments
-	url = git@github.com:actions/virtual-environments
+	url = git@github.com:actions/runner-images
 	branch = main
