@@ -257,7 +257,7 @@ build {
   provisioner "shell" {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["${path.root}/scripts/installers/complete-snap-setup.sh", "${path.root}/scripts/installers/powershellcore.sh"]
+    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/complete-snap-setup.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/powershellcore.sh"]
   }
 
 
