@@ -257,14 +257,10 @@ build {
   provisioner "shell" {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/complete-snap-setup.sh"]
+    scripts          = ["${path.root}/scripts/installers/complete-snap-setup.sh", "${path.root}/scripts/installers/powershellcore.sh"]
   }
 
-  provisioner "shell" {
-    environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}"]
-    execute_command = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts         = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/powershellcore.sh"]
-  }
+
 
   provisioner "shell" {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}"]
@@ -291,10 +287,12 @@ build {
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/apache.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/aws.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/clang.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/swift.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/cmake.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/codeql-bundle.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/containers.sh",
 			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/dotnetcore-sdk.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/firefox.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/microsoft-edge.sh",
 			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/gcc.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/gfortran.sh",
@@ -309,8 +307,10 @@ build {
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/oc.sh",
 			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/leiningen.sh",
 			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/miniconda.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/mono.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/kotlin.sh",
-			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/mysql.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/mysql.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/mssql-cmd-tools.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/sqlpackage.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/nginx.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/nvm.sh",
