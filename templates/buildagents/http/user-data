@@ -19,6 +19,8 @@ autoinstall:
     - apt-transport-https
     - ca-certificates
     - curl
+  early-commands:
+    - apt update
   late-commands:
     - echo '{{username}} ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/{{username}}
 
