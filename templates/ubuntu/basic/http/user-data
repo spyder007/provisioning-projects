@@ -22,6 +22,8 @@ autoinstall:
     - ca-certificates
     - curl
     - nfs-common
+  early-commands:
+    - apt update
   late-commands:
     - echo '{{username}} ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/{{username}}
 
