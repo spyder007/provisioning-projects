@@ -71,7 +71,7 @@ variable "vm_name" {
 
 source "hyperv-iso" "ubuntu_vm" {
   boot_command        = ["<esc><wait>", "c", "linux /casper/vmlinuz quiet autoinstall net.ifnames=0 biosdevname=0 ip=dhcp ipv6.disable=1 ds=nocloud-net\\;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ <enter>", "initrd /casper/initrd <enter>", "boot <enter>"]
-  boot_wait           = "4s"
+  boot_wait           = "10s"
   cpus                = "${var.cpus}"
   disk_size           = "${var.disk_size}"
   enable_mac_spoofing = true
