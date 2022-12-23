@@ -180,7 +180,13 @@ Function Remove-UnifiClient {
 
     $apiUrl = $apiUrl.TrimEnd("/")
 
-    $result = Invoke-RestMethod "$apiUrl/client/$macAddress" -headers $headers -method Delete
+    try {
+        $result = Invoke-RestMethod "$apiUrl/client/$macAddress" -headers $headers -method Delete
+    }
+    catch {
+        Write-Host $_.Exception.ToString();
+        return $false;
+    }
 
     if ($false -eq $result.Success) {
         Write-Error "Error deleting result: $($deleteResult.Errors)"

@@ -1,14 +1,12 @@
 param (
     [Parameter(Mandatory=$true)]
     $machineName,
-    [Parameter(Mandatory=$true)]
-    $userName,
-    [Parameter(Mandatory=$true)]
-    $hyperVisor,
     [bool]
     $isMsAgent=$false,
     [Parameter()]
-    $msAgentPAT
+    $msAgentPAT,
+    [Parameter()]
+    $userName
 )
 
 Import-Module ./Unifi.psm1
@@ -17,27 +15,36 @@ if ($isMsAgent) {
   ssh "$userName@$machineName" "export MS_AGENT_PAT=$msAgentPAT;cd /imagegeneration; sudo chmod 777 remove-agent.sh; ./remove-agent.sh"
 }
 
-$vm = Get-Vm -ComputerName $hyperVisor $machineName
-if ($null -eq $vm) {
-    Write-Error "$machineName not found on $hyperVisor"
+$vm = Get-Vm $machineNameif ($null -eq $vm) {
+    Write-Error "$machineName not found"
     return -1
 }
 
-$macAddress = $vm.NetworkAdapters[0].MacAddress
+$networkAdapter = (Get-VmNetworkAdapter -VMName $machineName)[0]
+if ($null -eq $networkAdapter) {
+    Write-Error "Could not find network adapter for $machineName"
+    return -1
+}
+
+$macAddress = $networkAdapter.MacAddress
 $macAddress = ($macAddress -replace '..(?!$)', '$&:').ToLower();
 
 Write-Host "Deleting Mac Address $macAddress from Unifi Controller"
 $deleteResult = Remove-UnifiClient $macAddress
 
-#$vmPath = "\\$hyperVisor\{0}" -f ($vm.Path -replace "^(\w{1}):(.*)", '$1$$$2')
+
+if ($deleteResult -eq $false) {
+    Write-Host "Could not delete IP.  Stopping";
+    return -1
+}
 
 Write-Host "Stopping VM" -nonewline
-Stop-Vm -Name $machineName -ComputerName $hyperVisor
-while ((Get-Vm -computername $hyperVisor $machineName).State -ne "Off"){
+Stop-Vm -Name $machineName
+while ((Get-Vm $machineName).State -ne "Off"){
     Write-Host "." -nonewline
     Start-Sleep -s 5
 }
 Write-Host "Stopped"
 
 Write-Host "Removing VM"
-Remove-Vm -Name $machineName -ComputerName $hyperVisor -Force
+Remove-Vm -Name $machineName -Force
