@@ -15,7 +15,8 @@ if ($isMsAgent) {
   ssh "$userName@$machineName" "export MS_AGENT_PAT=$msAgentPAT;cd /imagegeneration; sudo chmod 777 remove-agent.sh; ./remove-agent.sh"
 }
 
-$vm = Get-Vm $machineNameif ($null -eq $vm) {
+$vm = Get-Vm $machineName
+if ($null -eq $vm) {
     Write-Error "$machineName not found"
     return -1
 }
