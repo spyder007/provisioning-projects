@@ -172,7 +172,7 @@ Function Remove-UnifiClient {
     if ($null -eq $apiUrl) {
         return $true
     }
-
+    Write-Host "Retrieving Auth Token"
     $authToken = Get-AuthToken -scope "unifi.ipmanager"
 
     $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
@@ -181,6 +181,7 @@ Function Remove-UnifiClient {
     $apiUrl = $apiUrl.TrimEnd("/")
 
     try {
+        Write-Host "Deleting with $apiUrl/client/$macAddress"
         $result = Invoke-RestMethod "$apiUrl/client/$macAddress" -headers $headers -method Delete
     }
     catch {
