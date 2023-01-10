@@ -334,7 +334,8 @@ build {
 			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/android.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/pypy.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/python.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/graalvm.sh"
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/graalvm.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/zstd.sh"
                         ]
   }
 
