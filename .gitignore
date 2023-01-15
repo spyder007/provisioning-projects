@@ -3,3 +3,4 @@ packerhttp/
 **/*.pkrvars
 **/authorized_keys
 **/*.pkrvars.hcl
+packerlog.txt
