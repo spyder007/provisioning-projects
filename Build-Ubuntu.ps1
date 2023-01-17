@@ -29,8 +29,11 @@ param (
     [Parameter(Mandatory=$true,Position=3)]
 	$VariableFile,
     [Parameter(Position=4)]
-    $OutputFolder="d:\\Virtual Machines\\",
+    [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
+    $errorAction = "cleanup",
     [Parameter(Position=5)]
+    $OutputFolder="d:\\Virtual Machines\\",
+    [Parameter(Position=6)]
     [String]
     $machineName=$null    
 )
@@ -87,8 +90,9 @@ $macArgument = ""
 if ($null -ne $macAddress) {
     $macArgument = "-var `"mac_address=$($macAddress.RawMacAddress)`""
 }
+$onError = "-on-error=$errorAction"
 
-Invoke-Expression "packer build -var-file `"$VariableFile`" -var `"http=packerhttp`" -var `"output_dir=$OutputFolder`" $macArgument -var `"vm_name=$machineName`" `"$TemplateFile`""
+Invoke-Expression "packer build $onError -var-file `"$VariableFile`" -var `"http=packerhttp`" -var `"output_dir=$OutputFolder`" $macArgument -var `"vm_name=$machineName`" `"$TemplateFile`""
 
 $success = ($global:LASTEXITCODE -eq 0);
 
