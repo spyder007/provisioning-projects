@@ -9,6 +9,8 @@ param (
     $countStart=1
 )
 
+Import-Module ./HyperV-Provisioning.psm1
+
 $packerTemplate = ".\templates\ubuntu\ubuntu-2204.pkr.hcl"
 $httpFolder = ".\templates\ubuntu\basic\http\"
 $packerVariables = ".\templates\ubuntu\docker\$nodeSize-node.pkrvars.hcl"
@@ -17,5 +19,5 @@ $packerVariables = ".\templates\ubuntu\docker\$nodeSize-node.pkrvars.hcl"
 for ($i=$countStart; $i -lt $nodeCount + $countStart; $i++) {
     $machineName = "$baseName-n$i"
     Write-Host "Building $machineName"
-    Invoke-Expression ".\Build-Ubuntu.ps1 $packerTemplate $httpFolder $packerVariables -errorAction $packerErrorAction -machineName $machineName"
+    Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -VariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName"
 }
