@@ -160,6 +160,7 @@ source "hyperv-iso" "ubuntu_vm" {
   memory              = "${var.memory}"
   output_directory    = "${var.output_dir}${var.vm_name}\\"
   shutdown_command    = "sudo -S -E shutdown -P now"
+  shutdown_timeout    = "15m"
   ssh_password        = "${var.password}"
   ssh_timeout         = "1h"
   ssh_username        = "${var.username}"
