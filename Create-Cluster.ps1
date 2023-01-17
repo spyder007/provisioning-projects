@@ -17,7 +17,7 @@ $packerVariables = ".\templates\ubuntu\docker\$nodeSize-node.pkrvars.hcl"
 
 ## Create Nodes
 for ($i=$countStart; $i -lt $nodeCount + $countStart; $i++) {
-    $machineName = "$baseName-n$i"
+    $machineName = "{0}-{1:x6}" -f $baseName, $i
     Write-Host "Building $machineName"
     Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -VariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName"
 }
