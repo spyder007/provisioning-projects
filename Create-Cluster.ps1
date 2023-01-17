@@ -4,7 +4,7 @@ param (
     [ValidateSet("sm", "med")]
     $nodeSize="med",
     [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
-    $errorAction = "cleanup",
+    $packerErrorAction = "cleanup",
     $nodeCount=3,
     $countStart=1
 )
@@ -17,5 +17,5 @@ $packerVariables = ".\templates\ubuntu\docker\$nodeSize-node.pkrvars.hcl"
 for ($i=$countStart; $i -lt $nodeCount + $countStart; $i++) {
     $machineName = "$baseName-n$i"
     Write-Host "Building $machineName"
-    Invoke-Expression ".\Build-Ubuntu.ps1 $packerTemplate $httpFolder $packerVariables -errorAction $errorAction -machineName $machineName"
+    Invoke-Expression ".\Build-Ubuntu.ps1 $packerTemplate $httpFolder $packerVariables -errorAction $packerErrorAction -machineName $machineName"
 }

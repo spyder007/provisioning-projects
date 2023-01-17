@@ -9,7 +9,6 @@ The Packer templates are based on the work of [Nick Charlton's work][2] and rela
 * Hyper-V - You must have the Hyper-V Windows components installed on your computer.  There is no way to run these scripts against a remote Hyper-V host:  they must be run on a machine with Hyper-V installed
 * [Packer][Packer] - These were developed and tested against 1.7.0.  Newer versions should work, but your mileage will vary.
 
-
 ## Scripts
 
 There are two main Powershell Scripts in this repository.
@@ -40,18 +39,21 @@ This script uses Build-Ubuntu.ps1 to provision a new build agent based on Micros
 
 If you are going to use this script, make sure to pull the submodule by running either of the following commands
 
-```
+```bash
 git submodule init
 git submodule update
 ```
+
 OR
-```
+
+```bash
 git clone --recurse-submodules https://github.com/spyder007/provisioning-projects
 ```
 
 This will populate the proper commit of the ./templates/buildagents/lib folder, which is used for provisioning these agents.
 
 #### Usage
+
 * Make sure you create `./templates/buildagents/buildagent.pkrvars.hcl` by copying [./templates/buildagents/buildagent.pkrvars.hcl.template](./templates/buildagents/buildagent.pkrvars.template) and modifying the data accordingly
 * Make sure you have a properly formatted `authorized_keys` file in your `files_dirs` location (rom the above pkrvars file)
 * Create a Personal Access Token [PAT](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page) that has permissions to add and modify build agents.
@@ -61,9 +63,11 @@ This will populate the proper commit of the ./templates/buildagents/lib folder, 
 ```
 
 ## Unifi Controller Provisioning
+
 I have an API that wraps my Unifi Controller and allows me to randomly generate a Hyper-V appropriate MAC address and assign that MAC address a fixed IP in my DHCP (through my Unifi Security Gateway).  Obviously, this functionality is only useful for me, so this functionality is enabled based on environment variables and disabled by default.
 
 ## Notes
+
 The *Basic* template assumes there is a file called `authorized_keys` in `/templates/ubuntu/basic/files` that contains your public SSH key.  The template configures SSH to require key authentication and disables password authentication.
 
 ## Author
