@@ -1,13 +1,14 @@
 function Build-Ubuntu {
     <#
         .SYNOPSIS
-        Create an ubuntu hyper-v image using Packer
+        Create an Ubuntu hyper-v image using Packer
 
         .DESCRIPTION
-        Create an ubuntu hyper-v image using Packer
+        Create an Ubuntu hyper-v image using Packer.  This script does some specific work to translate passwords
+        that are specific to Ubuntu.
 
         .PARAMETER TemplateFile
-        The location of the Packer template file (*.json)
+        The location of the Packer template file (*.json or *.hcl)
 
         .PARAMETER HostHttpFolder
         The locatikon of the HostHTTP Folder.  This folder is mounted for the network installer to read.
@@ -15,8 +16,18 @@ function Build-Ubuntu {
         .PARAMETER VariableFile
         The location of the .pkvars file for this run
 
+        .PARAMETER OutputFolder
+        The base folder where the VM information will be stored.
+
+        .PARAMETER packerErrorAction
+        The ErrorAction to use for the Packer Command.  Valid values are "cleanup", "abort", "ask", and "run-cleanup-provisioner".
+        See https://developer.hashicorp.com/packer/docs/commands/build for information on the -on-error option details.
+
         .PARAMETER machineName
-        The machine name
+        The machine name to use for the final VM
+
+        .PARAMETER useUnifi
+        If true, the machine will be provisioned using the Unifi module to request VM Network information.
 
         .EXAMPLE
         PS> .\Build-Ubuntu.ps1 ".\templates\ubuntu\ubuntu-2004.json" .\templates\ubuntu\basic\http .\templates\ubuntu\basic\basic.pkvars -machinename ubuntuHost
@@ -120,7 +131,7 @@ function Build-Ubuntu {
     }
 }
 
-function Delete-VM {
+function Remove-HyperVVm {
     param (
         [Parameter(Mandatory = $true)]
         $machineName,

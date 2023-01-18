@@ -7,37 +7,51 @@ The Packer templates are based on the work of [Nick Charlton's work][2] and rela
 ## Prerequisites
 
 * Hyper-V - You must have the Hyper-V Windows components installed on your computer.  There is no way to run these scripts against a remote Hyper-V host:  they must be run on a machine with Hyper-V installed
-* [Packer][Packer] - These were developed and tested against 1.7.0.  Newer versions should work, but your mileage will vary.
+* [Packer][Packer] - These were developed and tested against 1.8.4.  Newer versions should work, but your mileage will vary.
+
+## Modules
+
+There are two Powershell Modules in this repository.
+
+### Hyper-V Provisioning
+
+The Hyper-V Provisioning Module ([HyperV-Provisioning.psm1](./HyperV-Provisioning.psm1)) provides functions for provisioning Hyper-V images.  Each module and its functions are documented, so see the file for more details.
+
+### Unifi Module
+
+I have an API that wraps my Unifi Controller and allows me to randomly generate a Hyper-V appropriate MAC address and assign that MAC address a fixed IP in my DHCP (through my Unifi Security Gateway).  Obviously, this functionality is only useful for me, so this functionality is enabled based on environment variables and disabled by default.
+
+The Unifi Module ([Unifi.psm1](./Unifi.psm1)) provides functionality for authenticating and making calls to this wrapper.  The Hyper-V Provisioning module functions provider for a `-useUnifi` parameter that can be set to `false` to ignore this module.
 
 ## Scripts
 
-There are two main Powershell Scripts in this repository.
-
-### Build-Ubuntu.ps1
-
-This script has the following parameters.
-
-* **TemplateFile** - The location of the Packer Template file.  Currenly, two ubuntu-2004.json files (located [here](./templates/ubuntu/ubuntu-2004.json) and [here](./templates/buildagents/ubuntu-2004.json) are the only Packer templates in this repository.
-* **HostHttpFolder** - This is the folder that will be used as the *http_directory* in the Packer build. See the [Packer Docs](https://www.packer.io/docs/builders/hyperv/iso#http_directory) for more details.
-* **VarableFile** - The .pkvars file for your build.  I have included `*.pkvars.template` files for reference.
-* **OutputFolder** - (optional) - The final location of the Hyper-V machine
-* **machineName** - (optional) - Override the `vm_name` parameter from the variables file
-
-#### Hyper-V Export/Import
-
-Since Packer automatically exports the Hyper-V image, this script performs and import and a start of the VM.
-
-#### Usage
+All scripts are self documented.  To see the documentation, either examine the script or run `get-help` with the script name.
 
 ```powershell
-.\Build-Ubuntu.ps1 ".\Templates\ubuntu\ubuntu-2004.pkr.hcl" .\templates\ubuntu\basic\http .\templates\ubuntu\basic\basic.pkrvars.hcl -machinename newhost
+get-help .\Create-NewBuildAgent.ps1 -Detailed
 ```
 
-### Create-NewBuildAgent.ps1
+## Variable Files
 
-This script uses Build-Ubuntu.ps1 to provision a new build agent based on Microsoft's hosted build agents for Github/Azure DevOps, specifically the [Ubuntu 20.04 agent](https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-README.md) 
+This repository contains template *.pkrvars.hcl files for all of the templates.  You are responsible for creating the appropriate variables files.  
 
-If you are going to use this script, make sure to pull the submodule by running either of the following commands
+For example, create `./templates/buildagents/buildagent.pkrvars.hcl` by copying [./templates/buildagents/buildagent.pkrvars.hcl.template](./templates/buildagents/buildagent.pkrvars.template) and modifying the data accordingly.
+
+## `authorized_keys` Files
+
+All Ubuntu templates, including the Azure DevOps Build Agents, assume there is a file called `authorized_keys` in `/templates/ubuntu/basic/files` that contains your public SSH key.  The template configures SSH to require key authentication and disables password authentication.
+
+Make sure you have a properly formatted `authorized_keys` file in your `files_dirs` location (from the above pkrvars file).
+
+## Azure DevOps Build Agents
+
+Create a Personal Access Token [PAT](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page) that has permissions to add and modify build agents.  This value is then saved in your `buildagent.pkrvars.hcl` file.
+
+### Git Submodule
+
+The `Create-NewBuildAgent.ps1` script uses the Hyper-V Provisioning Module to provision a new build agent based on Microsoft's hosted build agents for Github/Azure DevOps.  In order to stay up to date, the runner-images repository is a submodule of this repository.
+
+If you are going to use the `Create-NewBuildAgent.ps1` script, make sure to pull the submodule by running either of the following commands
 
 ```bash
 git submodule init
@@ -52,23 +66,6 @@ git clone --recurse-submodules https://github.com/spyder007/provisioning-project
 
 This will populate the proper commit of the ./templates/buildagents/lib folder, which is used for provisioning these agents.
 
-#### Usage
-
-* Make sure you create `./templates/buildagents/buildagent.pkrvars.hcl` by copying [./templates/buildagents/buildagent.pkrvars.hcl.template](./templates/buildagents/buildagent.pkrvars.template) and modifying the data accordingly
-* Make sure you have a properly formatted `authorized_keys` file in your `files_dirs` location (rom the above pkrvars file)
-* Create a Personal Access Token [PAT](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page) that has permissions to add and modify build agents.
-
-```powershell
-.\Create-NewBuildAgent.ps1
-```
-
-## Unifi Controller Provisioning
-
-I have an API that wraps my Unifi Controller and allows me to randomly generate a Hyper-V appropriate MAC address and assign that MAC address a fixed IP in my DHCP (through my Unifi Security Gateway).  Obviously, this functionality is only useful for me, so this functionality is enabled based on environment variables and disabled by default.
-
-## Notes
-
-The *Basic* template assumes there is a file called `authorized_keys` in `/templates/ubuntu/basic/files` that contains your public SSH key.  The template configures SSH to require key authentication and disables password authentication.
 
 ## Author
 
