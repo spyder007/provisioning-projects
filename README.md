@@ -2,7 +2,7 @@
 
 These are working examples of using Packer to install and provision Hyper-V VMs.  Currently they are only setup to generate various flavors of Ubuntu images, but the templates can be used to build out templates for other OS provisioning.
 
-The Packer templates are based on the work of [Nick Charlton's work][2] and related [post][3]
+The Packer templates are based on the work of [Nick Charlton's work][1] and related [post][2]
 
 ## Prerequisites
 
@@ -45,7 +45,7 @@ Make sure you have a properly formatted `authorized_keys` file in your `files_di
 
 ## Azure DevOps Build Agents
 
-Create a Personal Access Token [PAT](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page) that has permissions to add and modify build agents.  This value is then saved in your `buildagent.pkrvars.hcl` file.
+Create a Personal Access Token [PAT][3] that has permissions to add and modify build agents.  This value is then saved in your `buildagent.pkrvars.hcl` file.
 
 ### Git Submodule
 
@@ -66,13 +66,11 @@ git clone --recurse-submodules https://github.com/spyder007/provisioning-project
 
 This will populate the proper commit of the ./templates/buildagents/lib folder, which is used for provisioning these agents.
 
-
 ## Author
 
-Copyright (c) 2021 Matt Gerega. MIT Licensed.
+Copyright (c) 2023 Matt Gerega. MIT Licensed.
 
 [Packer]: https://packer.io
-[1]: ./Build-Ubuntu.ps1
-[2]: https://github.com/nickcharlton/packer-ubuntu-2004
-[3]: https://nickcharlton.net/posts/automating-ubuntu-2004-installs-with-packer.html
-[4]: ./Create-NewBuildAgent.ps1
+[1]: https://github.com/nickcharlton/packer-ubuntu-2004
+[2]: https://nickcharlton.net/posts/automating-ubuntu-2004-installs-with-packer.html
+[3]: https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page
