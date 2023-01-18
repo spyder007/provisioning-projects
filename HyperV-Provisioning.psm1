@@ -153,11 +153,14 @@ function Remove-HyperVVm {
     }
     
     $vm = Get-Vm $machineName
+
     if ($null -eq $vm) {
         Write-Error "$machineName not found"
         return -1
     }
     
+    $vmPath = $vm.Path
+
     if ($useUnifi) {
         $networkAdapter = (Get-VmNetworkAdapter -VMName $machineName)[0]
         if ($null -eq $networkAdapter) {
@@ -188,4 +191,6 @@ function Remove-HyperVVm {
     
     Write-Host "Removing VM"
     Remove-Vm -Name $machineName -Force
+
+    Remove-Item -Recurse $vmPath
 }

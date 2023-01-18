@@ -61,7 +61,6 @@ Function Get-AuthToken {
     
     return $result.access_token
 }
-
 Function Set-AuthAPIEnvironmentVariables {
     param (
         $clientId,
@@ -156,7 +155,7 @@ Function Get-UnifiClients {
     $result = Invoke-RestMethod "$apiUrl/client/" -headers $headers -method Get
 
     if ($false -eq $result.Success) {
-        Write-Error "Error deleting result: $($deleteResult.Errors)"
+        Write-Error "Error getting clients: $($result.Errors)"
         return $false
     }
     return $result.data
