@@ -10,40 +10,27 @@ Function Get-AuthToken {
         $password,
         $authUrl
     )
+
+    $envVars = Get-AuthApiEnvironmentVariables();
     
     if ([System.String]::IsNullOrWhiteSpace($clientId)) {
-        $clientId = $env:API_CLIENT_ID;
-        if ($null -eq $clientId) {
-            $clientId = [System.Environment]::GetEnvironmentVariable('API_CLIENT_ID', [System.EnvironmentVariableTarget]::User)   
-        }
+        $clientId = $envVars.clientId;
     }
     
     if ([System.String]::IsNullOrWhiteSpace($clientSecret)) {
-        $clientSecret = $env:API_CLIENT_SECRET
-        if ($null -eq $clientSecret) {
-            $clientSecret = [System.Environment]::GetEnvironmentVariable('API_CLIENT_SECRET', [System.EnvironmentVariableTarget]::User) 
-        }
+        $clientSecret = $envVars.clientSecret
     }
     
     if ([System.String]::IsNullOrWhiteSpace($userName)) {
-        $userName = $env:API_USERNAME
-        if ($null -eq $userName) {
-            $userName = [System.Environment]::GetEnvironmentVariable('API_USERNAME', [System.EnvironmentVariableTarget]::User)
-        }
+        $userName = $envVars.username;
     }
     
     if ([System.String]::IsNullOrWhiteSpace($password)) {
-        $password = $env:API_PASSWORD
-        if ($null -eq $password) {
-            $password = [System.Environment]::GetEnvironmentVariable('API_PASSWORD', [System.EnvironmentVariableTarget]::User)
-        }
+        $password = $envVars.password
     }
     
     if ([System.String]::IsNullOrWhiteSpace($authUrl)) {
-        $authUrl = $env:API_AUTH_URL
-        if ($null -eq $authUrl) {
-            $authUrl = [System.Environment]::GetEnvironmentVariable('API_AUTH_URL', [System.EnvironmentVariableTarget]::User)
-        }
+        $authUrl = $envVars.authUrl
     }
     
     $body = @{
@@ -77,6 +64,45 @@ Function Set-AuthAPIEnvironmentVariables {
     [System.Environment]::SetEnvironmentVariable('API_AUTH_URL', "$authUrl", [System.EnvironmentVariableTarget]::User)
 }
 
+Function Get-AuthApiEnvironmentVariables {
+    param()
+
+    $clientId = $env:API_CLIENT_ID;
+    if ($null -eq $clientId) {
+        $clientId = [System.Environment]::GetEnvironmentVariable('API_CLIENT_ID', [System.EnvironmentVariableTarget]::User)   
+    }
+
+    $clientSecret = $env:API_CLIENT_SECRET
+    if ($null -eq $clientSecret) {
+        $clientSecret = [System.Environment]::GetEnvironmentVariable('API_CLIENT_SECRET', [System.EnvironmentVariableTarget]::User) 
+    }
+
+    $userName = $env:API_USERNAME
+    if ($null -eq $userName) {
+        $userName = [System.Environment]::GetEnvironmentVariable('API_USERNAME', [System.EnvironmentVariableTarget]::User)
+    }
+
+
+    $password = $env:API_PASSWORD
+    if ($null -eq $password) {
+        $password = [System.Environment]::GetEnvironmentVariable('API_PASSWORD', [System.EnvironmentVariableTarget]::User)
+    }
+
+    $authUrl = $env:API_AUTH_URL
+    if ($null -eq $authUrl) {
+        $authUrl = [System.Environment]::GetEnvironmentVariable('API_AUTH_URL', [System.EnvironmentVariableTarget]::User)
+    }
+
+    return @{
+        clientId      = "$clientId"
+        clientSecret  = "$clientSecret"
+        username      = "$userName"
+        password      = "$password"
+        authUrl       = "$authUrl"
+    }
+}
+
+
 Function Set-UnifiEnvironmentVariables {
     param (
         $provisionUrl,
@@ -85,6 +111,25 @@ Function Set-UnifiEnvironmentVariables {
 
     [System.Environment]::SetEnvironmentVariable('API_PROVISION_URL', "$provisionUrl", [System.EnvironmentVariableTarget]::User)
     [System.Environment]::SetEnvironmentVariable('API_PROVISION_GROUP', "$provisionGroup", [System.EnvironmentVariableTarget]::User)
+}
+
+Function Get-UnifiEnvironmentVariables {
+    param()
+    
+    $apiUrl = $env:API_PROVISION_URL
+    if ($null -eq $apiUrl) {
+        $apiUrl = [System.Environment]::GetEnvironmentVariable('API_PROVISION_URL', [System.EnvironmentVariableTarget]::User)
+    }
+
+    $provisionGroup = $env:API_PROVISION_GROUP
+    if ($null -eq $provisionGroup) {
+        $provisionGroup = [System.Environment]::GetEnvironmentVariable('API_PROVISION_GROUP', [System.EnvironmentVariableTarget]::User)
+    }
+
+    return @{
+        unifiUrl = "$apiUrl"
+        provisionGroup = "$provisionGroup"
+    }
 }
 
 Function Invoke-ProvisionUnifiClient {
@@ -97,20 +142,14 @@ Function Invoke-ProvisionUnifiClient {
         $syncDns = $true
     )
 
-    $apiUrl = $env:API_PROVISION_URL
-    if ($null -eq $apiUrl) {
-        $apiUrl = [System.Environment]::GetEnvironmentVariable('API_PROVISION_URL', [System.EnvironmentVariableTarget]::User)
-    }
+    $unifiVars = Get-UnifiEnvironmentVariables()
 
-
+    $apiUrl = $unifiVars.unifiUrl
     if ($null -eq $apiUrl) {
         return $null
     }
 
-    $provisionGroup = $env:API_PROVISION_GROUP
-    if ($null -eq $provisionGroup) {
-        $provisionGroup = [System.Environment]::GetEnvironmentVariable('API_PROVISION_GROUP', [System.EnvironmentVariableTarget]::User)
-    }
+    $provisionGroup = $unifiVars.provisionGroup
 
     $authToken = Get-AuthToken -scope "unifi.ipmanager"
 
