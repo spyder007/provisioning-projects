@@ -11,8 +11,8 @@ Function Get-AuthToken {
         $authUrl
     )
 
-    $envVars = Get-AuthApiEnvironmentVariables();
-    
+    $envVars = Get-AuthApiEnvironmentVariables
+
     if ([System.String]::IsNullOrWhiteSpace($clientId)) {
         $clientId = $envVars.clientId;
     }
@@ -142,7 +142,7 @@ Function Invoke-ProvisionUnifiClient {
         $syncDns = $true
     )
 
-    $unifiVars = Get-UnifiEnvironmentVariables()
+    $unifiVars = Get-UnifiEnvironmentVariables
 
     $apiUrl = $unifiVars.unifiUrl
     if ($null -eq $apiUrl) {
