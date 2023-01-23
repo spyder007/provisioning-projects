@@ -41,7 +41,7 @@ Function Get-AuthToken {
         username      = "$userName"
         password      = "$password"
     }
-    
+
     $contentType = 'application/x-www-form-urlencoded'
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $result = ConvertFrom-Json (Invoke-WebRequest -method Post -Uri "$authUrl" -body $body -ContentType $contentType -UseBasicParsing)
@@ -56,7 +56,13 @@ Function Set-AuthAPIEnvironmentVariables {
         $password,
         $authUrl
     )
-    
+
+    $env:API_CLIENT_ID = "$clientId"
+    $env:API_CLIENT_SECRET = "$clientSecret"
+    $env:API_USERNAME = "$userName"
+    $env:API_PASSWORD = "$password"
+    $env:API_AUTH_URL = "$authUrl"
+
     [System.Environment]::SetEnvironmentVariable('API_CLIENT_ID', "$clientId", [System.EnvironmentVariableTarget]::User)
     [System.Environment]::SetEnvironmentVariable('API_CLIENT_SECRET', "$clientSecret", [System.EnvironmentVariableTarget]::User)
     [System.Environment]::SetEnvironmentVariable('API_USERNAME', "$userName", [System.EnvironmentVariableTarget]::User)
@@ -108,6 +114,8 @@ Function Set-UnifiEnvironmentVariables {
         $provisionUrl,
         $provisionGroup
     )
+    $env:API_PROVISION_URL = "$provisionUrl"
+    $env:API_PROVISION_GROUP = "$provisionGroup"
 
     [System.Environment]::SetEnvironmentVariable('API_PROVISION_URL', "$provisionUrl", [System.EnvironmentVariableTarget]::User)
     [System.Environment]::SetEnvironmentVariable('API_PROVISION_GROUP', "$provisionGroup", [System.EnvironmentVariableTarget]::User)

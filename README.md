@@ -8,6 +8,14 @@ The Packer templates are based on the work of [Nick Charlton's work][1] and rela
 
 * Hyper-V - You must have the Hyper-V Windows components installed on your computer.  There is no way to run these scripts against a remote Hyper-V host:  they must be run on a machine with Hyper-V installed
 * [Packer][Packer] - These were developed and tested against 1.8.4.  Newer versions should work, but your mileage will vary.
+* [OpenSSL][OpenSSL] - Windows OpenSSL is used to hash the passwords for Ubuntu images
+  
+I use [Chocolatey][Chocolatey] to install and update both Packer and OpenSSL on my server.
+
+```powershell
+choco install packer
+choco install openssl
+```
 
 ## Modules
 
@@ -71,6 +79,8 @@ This will populate the proper commit of the ./templates/buildagents/lib folder, 
 Copyright (c) 2023 Matt Gerega. MIT Licensed.
 
 [Packer]: https://packer.io
+[OpenSSL]: https://www.openssl.org/
+[Chocolatey]: https://chocolatey.org/
 [1]: https://github.com/nickcharlton/packer-ubuntu-2004
 [2]: https://nickcharlton.net/posts/automating-ubuntu-2004-installs-with-packer.html
 [3]: https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page
