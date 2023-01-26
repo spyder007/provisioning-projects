@@ -60,10 +60,16 @@ if (-not (Test-Path $packerVariables)) {
     Write-Error "Variable file not found: $packerVariables"
     return -1
 }
-
+$nodes = @()
 ## Create Nodes
 for ($i=$countStart; $i -lt $nodeCount + $countStart; $i++) {
     $machineName = "{0}-{1:x6}" -f $baseName, $i
     Write-Host "Building $machineName"
-    Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -VariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi
+    $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -VariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi
+
+    if ($detail.success) {
+        $nodes += $detail;
+    }
 }
+
+$nodes | Format-Table

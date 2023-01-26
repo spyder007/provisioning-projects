@@ -17,6 +17,14 @@ choco install packer
 choco install openssl
 ```
 
+### A note on Packer HTTP
+
+The Ubuntu image provisioner is setup to use a `cloud-config` file to autoinstall.  This requires the use of the Packer HTTP server, and, more specifically, that the server's firewall is configured to accept ports 8000-9000.  
+
+```powershell
+New-NetFirewallRule -DisplayName "Allow Packer HTTP" -Direction Inbound -Action Allow -EdgeTraversalPolicy Allow -Protocol TCP -LocalPort 8000-9000
+```
+
 ## Modules
 
 There are two Powershell Modules in this repository.

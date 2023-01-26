@@ -121,6 +121,12 @@ function Build-Ubuntu {
 
         Import-VM -Path "$($vmcx.FullName)"
         Start-VM "$($machineName)"
+        return @{
+            success          = $true
+            machineName      = "$machineName"
+            macAddress       = "$($macAddress.MacAddress)"
+            ipAddress        = "$($macAddress.IPAddress)"
+        }
     }
     else {
         if ($useUnifi) {
@@ -128,7 +134,12 @@ function Build-Ubuntu {
                 Remove-UnifiClient -macAddress $macAddress.MacAddress
             }
         }
+        return @{
+            success          = $false
+        }
     }
+
+
 }
 
 function Remove-HyperVVm {
