@@ -4,3 +4,4 @@ packerhttp/
 **/authorized_keys
 **/*.pkrvars.hcl
 packerlog.txt
+.vscode/*
