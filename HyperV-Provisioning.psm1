@@ -119,8 +119,8 @@ function Build-Ubuntu {
         $vmFolder = [IO.Path]::Combine($OutputFolder, $machineName)
         $vmcx = Get-ChildItem -Path "$vmFolder" -Recurse -Filter "*.vmcx"
 
-        Import-VM -Path "$($vmcx.FullName)"
-        Start-VM "$($machineName)"
+        Import-VM -Path "$($vmcx.FullName)" | Out-Host
+        Start-VM "$($machineName)" | Out-Host
         return @{
             success          = $true
             machineName      = "$machineName"
