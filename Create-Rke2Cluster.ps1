@@ -62,7 +62,7 @@ if (-not (Test-Path $packerVariables)) {
 }
 $nodes = @()
 
-$machineName = "{0}-server-{1:x3}" -f $baseName, $countStart
+$machineName = "{0}-srv-{1:x3}" -f $baseName, $countStart
 Write-Host "Building $machineName"
 $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -VariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi
 
@@ -90,7 +90,7 @@ $packerVariables = ".\templates\ubuntu\rke2\$nodeSize-worker.pkrvars.hcl"
 
 # Create Nodes
 for ($i=$countStart+1; $i -lt $nodeCount + $countStart; $i++) {
-    $machineName = "{0}-worker-{1:x3}" -f $baseName, $i
+    $machineName = "{0}-agt-{1:x3}" -f $baseName, $i
     Write-Host "Building $machineName"
     $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -VariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi
 
