@@ -62,7 +62,7 @@ if (-not (Test-Path $packerVariables)) {
 }
 $nodes = @()
 
-$machineName = "{0}-server-{1:x3}" -f $baseName, $i
+$machineName = "{0}-server-{1:x3}" -f $baseName, 1 #$i
 Write-Host "Building $machineName"
 $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -VariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi
 
