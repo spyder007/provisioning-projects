@@ -2,7 +2,7 @@
 cpus = 2
 disk_size = 42880
 files_dirs = ["./templates/ubuntu/basic/files/"]
-provisioning_scripts = ["./templates/ubuntu/basic/basic-prov.sh,./templates/ubuntu/rke2/scripts/install-server.sh"]
+provisioning_scripts = ["./templates/ubuntu/basic/basic-prov.sh","./templates/ubuntu/rke2/scripts/install-server.sh"]
 memory = 2048
 output_dir = "./output"
 username = "ubuntu"
