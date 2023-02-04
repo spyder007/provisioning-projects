@@ -62,7 +62,7 @@ if (-not (Test-Path $packerVariables)) {
 }
 $nodes = @()
 
-$machineName = "{0}-server-{1:x3}" -f $baseName, 1 #$i
+$machineName = "{0}-server-{1:x3}" -f $baseName, $countStart
 Write-Host "Building $machineName"
 $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -VariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi
 
@@ -75,21 +75,21 @@ $nodes += $detail;
 
 $serverIp = $detail.ipAddress
 
-Invoke-Expression "scp matt@$($serverip):rke2.yaml ./templates/ubuntu/rke/files/rke2.yaml"
-Invoke-Expression "scp matt@$($serverip):node-token ./templates/ubuntu/rke/files/node-token"
+Invoke-Expression "scp matt@$($serverip):rke2.yaml ./templates/ubuntu/rke2/files/rke2.yaml"
+Invoke-Expression "scp matt@$($serverip):node-token ./templates/ubuntu/rke2/files/node-token"
 
 $nodeToken = Get-Content -Raw ./templates/ubuntu/rke/files/node-token
 
-if (Test-Path "./templates/ubuntu/rke/files/agent-config.yaml") {
-    Remove-Item "./templates/ubuntu/rke/files/agent-config.yaml"
+if (Test-Path "./templates/ubuntu/rke2/files/agent-config.yaml") {
+    Remove-Item "./templates/ubuntu/rke2/files/agent-config.yaml"
 }
-Add-Content -Path "./templates/ubuntu/rke/files/agent-config.yaml" -Value "server: https://$(serverIp):9345"
-Add-Content -Path "./templates/ubuntu/rke/files/agent-config.yaml" -Value "token: $nodeToken"
+Add-Content -Path "./templates/ubuntu/rke2/files/agent-config.yaml" -Value "server: https://$(serverIp):9345"
+Add-Content -Path "./templates/ubuntu/rke2/files/agent-config.yaml" -Value "token: $nodeToken"
 
 $packerVariables = ".\templates\ubuntu\rke2\$nodeSize-worker.pkrvars.hcl"
 
 # Create Nodes
-for ($i=$countStart; $i -lt $nodeCount + $countStart; $i++) {
+for ($i=$countStart+1; $i -lt $nodeCount + $countStart; $i++) {
     $machineName = "{0}-worker-{1:x3}" -f $baseName, $i
     Write-Host "Building $machineName"
     $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -VariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi
