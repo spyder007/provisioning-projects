@@ -82,7 +82,7 @@ function Build-Ubuntu {
             Write-Host "Using random mac address"
         }
         else {
-            $macAddress | Format-Table
+            $macAddress | Format-Table | Out-Host
             Write-Host "Mac Address = $($macAddress.RawMacAddress)"
         }
     }
