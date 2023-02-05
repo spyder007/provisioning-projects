@@ -5,7 +5,7 @@ sudo chmod +x install.sh
 sudo INSTALL_RKE2_TYPE="agent" ./install.sh
 
 sudo systemctl enable rke2-agent.service
-mkdir -p /etc/rancher/rke2
-cp ~/packertmp/agent-config.yaml /etc/rancher/rke2/config.yaml
+sudo mkdir -p /etc/rancher/rke2
+sudo cp ~/packertmp/agent-config.yaml /etc/rancher/rke2/config.yaml
 
 sudo systemctl start rke2-agent.service

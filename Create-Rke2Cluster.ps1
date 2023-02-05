@@ -36,6 +36,8 @@
 param (
     [Parameter(Mandatory=$true,Position=1)]
 	$baseName,
+    [Parameter(Mandatory=$true,Position=2)]
+	$clusterDnsName,
     [Parameter()]
     [ValidateSet("ubuntu-2204")]
     $type = "ubuntu-2204",
@@ -63,6 +65,15 @@ if (-not (Test-Path $packerVariables)) {
 $nodes = @()
 
 $machineName = "{0}-srv-{1:x3}" -f $baseName, $countStart
+
+$serverConfig = convertfrom-yaml (get-content .\templates\ubuntu\rke2\configuration\server-config.yaml -Raw)
+$serverConfig."node-name" = $machineName
+$serverConfig."tls-san" = @()
+$serverConfig."tls-san" += $clusterDnsName
+$serverConfig."tls-san" += $clusterDnsName.SubString(0, $clusterDnsName.IndexOf("."));
+
+(ConvertTo-Yaml $serverConfig) | Set-Content -Path .\templates\ubuntu\rke2\files\server-config.yaml
+
 Write-Host "Building $machineName"
 $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -VariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi
 
@@ -75,16 +86,17 @@ $nodes += $detail;
 
 $serverIp = $detail.ipAddress
 
-Invoke-Expression "scp matt@$($serverip):rke2.yaml ./templates/ubuntu/rke2/files/rke2.yaml"
-Invoke-Expression "scp matt@$($serverip):node-token ./templates/ubuntu/rke2/files/node-token"
+Write-Host "Create a DNS record for $clusterDnsName -> to $serverIp and hit Enter to continue"
+Read-Host | Out-Null
 
-$nodeToken = Get-Content -Raw ./templates/ubuntu/rke/files/node-token
-
-if (Test-Path "./templates/ubuntu/rke2/files/agent-config.yaml") {
-    Remove-Item "./templates/ubuntu/rke2/files/agent-config.yaml"
+if (Test-Path "c:\tmp") {
+    Remove-Item -Recurse "c:\tmp"
 }
-Add-Content -Path "./templates/ubuntu/rke2/files/agent-config.yaml" -Value "server: https://$(serverIp):9345"
-Add-Content -Path "./templates/ubuntu/rke2/files/agent-config.yaml" -Value "token: $nodeToken"
+
+Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" matt@$($serverip):rke2.yaml ./templates/ubuntu/rke2/files/rke2.yaml"
+Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" matt@$($serverip):node-token ./templates/ubuntu/rke2/files/node-token"
+
+$nodeToken = Get-Content -Raw ./templates/ubuntu/rke2/files/node-token
 
 $packerVariables = ".\templates\ubuntu\rke2\$nodeSize-worker.pkrvars.hcl"
 
@@ -92,6 +104,14 @@ $packerVariables = ".\templates\ubuntu\rke2\$nodeSize-worker.pkrvars.hcl"
 for ($i=$countStart+1; $i -lt $nodeCount + $countStart; $i++) {
     $machineName = "{0}-agt-{1:x3}" -f $baseName, $i
     Write-Host "Building $machineName"
+
+    $agentConfig = convertfrom-yaml (get-content .\templates\ubuntu\rke2\configuration\agent-config.yaml -Raw)
+    $agentConfig."node-name" = $machineName
+    $agentConfig."server" = "https://$($clusterDnsName):9345"
+    $agentConfig."token" = "$nodeToken"
+
+    (ConvertTo-Yaml $agentConfig) | Set-Content -Path .\templates\ubuntu\rke2\files\agent-config.yaml
+
     $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -VariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi
 
     if ($detail.success) {

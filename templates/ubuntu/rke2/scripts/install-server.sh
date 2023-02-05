@@ -7,9 +7,14 @@ sudo chmod +x install.sh
 
 # ELSE - Assume one server
 sudo ./install.sh
+
+# Copy the server configuration file
+sudo cp ~/packertmp/server-config.yaml /etc/rancher/rke2/config.yaml
+
 sudo systemctl enable rke2-server.service
 sudo systemctl start rke2-server.service
 
+# Copy the creds file and node-token to an accessible location for future scripts
 sudo cp /etc/rancher/rke2/rke2.yaml .
 sudo chown $USER:$USER rke2.yaml
 sudo cp /var/lib/rancher/rke2/server/node-token .
