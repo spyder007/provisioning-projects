@@ -1,6 +1,0 @@
-tls-san:
-- cp-test.gerega.net
-- cp-test
-disable: rke2-ingress-nginx
-node-name: k2-test-srv-001
-

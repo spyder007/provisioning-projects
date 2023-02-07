@@ -53,6 +53,7 @@ param (
 )
 
 Import-Module ./HyperV-Provisioning.psm1
+Import-Module powershell-yaml
 
 $packerTemplate = ".\templates\ubuntu\$type.pkr.hcl"
 $httpFolder = ".\templates\ubuntu\basic\http\"
@@ -86,8 +87,8 @@ $nodes += $detail;
 
 $serverIp = $detail.ipAddress
 
-Write-Host "Create a DNS record for $clusterDnsName -> to $serverIp and hit Enter to continue"
-Read-Host | Out-Null
+Write-Host "Waiting 3 minutes to ensure the Server is up and running"
+Start-Sleep -Seconds 180
 
 if (Test-Path "c:\tmp") {
     Remove-Item -Recurse "c:\tmp"

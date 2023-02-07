@@ -9,6 +9,7 @@ sudo chmod +x install.sh
 sudo ./install.sh
 
 # Copy the server configuration file
+sudo mkdir -p /etc/rancher/rke2
 sudo cp ~/packertmp/server-config.yaml /etc/rancher/rke2/config.yaml
 
 sudo systemctl enable rke2-server.service
