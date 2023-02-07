@@ -94,8 +94,9 @@ if (Test-Path "c:\tmp") {
     Remove-Item -Recurse "c:\tmp"
 }
 
-Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" matt@$($serverip):rke2.yaml ./templates/ubuntu/rke2/files/rke2.yaml"
-Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" matt@$($serverip):node-token ./templates/ubuntu/rke2/files/node-token"
+# This step assumes that the user running this script has an SSH key listed in the ./templates/ubuntu/basic/files/authorized_keys file.  See the README for details.
+Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" $($detail.userName)@$($serverip):rke2.yaml ./templates/ubuntu/rke2/files/rke2.yaml"
+Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" $($detail.userName)@$($serverip):node-token ./templates/ubuntu/rke2/files/node-token"
 
 $nodeToken = Get-Content -Raw ./templates/ubuntu/rke2/files/node-token
 
