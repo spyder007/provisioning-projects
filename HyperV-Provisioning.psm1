@@ -126,6 +126,7 @@ function Build-Ubuntu {
             machineName      = "$machineName"
             macAddress       = "$($macAddress.MacAddress)"
             ipAddress        = "$($macAddress.IPAddress)"
+            userName         = "$($vars["username"])"
         }
     }
     else {
