@@ -1,4 +1,4 @@
-    function New-Rke2Cluster {
+function New-Rke2Cluster {
     <#
         .SYNOPSIS
         Create a set of docker-enabled Ubuntu nodes for a Kubernetes cluster.
@@ -58,7 +58,7 @@
     Import-Module powershell-yaml
     
     if (Test-Path "./rke2-servers/$clusterName/node-token") {
-        Write-Error "Cluster with name $clusterName already found.  Use Add-NodeToCluster or Remove-NodeFromCluster to manage."
+        Write-Error "Cluster with name $clusterName already found.  Use Add-NodeToCluster or Remove-NodeFromRke2Cluster to manage."
         exit -1
     }
 
@@ -83,7 +83,7 @@
         else {
             $nodeType = "server"
         }
-        $nodeDetail = Add-NewNodeToCluster -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType
+        $nodeDetail = Add-NodeToRke2Cluster -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType
    
         if ($nodeDetail.success) {
             $nodes += $detail;
@@ -115,7 +115,7 @@
         $machineName = "{0}-agt-{1:x3}" -f $clusterName, $i
         Write-Host "Building $machineName"
     
-        $nodeDetail = Add-NewNodeToCluster -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType "agent"
+        $nodeDetail = Add-NodeToRke2Cluster -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType "agent"
 
         if ($nodeDetail.success) {
             $nodes += $detail;
@@ -134,7 +134,7 @@
     $nodes | Format-Table
 }
 
-function Deploy-NewRkeClusterNodes{
+function Deploy-NewRke2ClusterNodes{
         <#
         .SYNOPSIS
         Create a set of docker-enabled Ubuntu nodes for a Kubernetes cluster.
@@ -238,7 +238,7 @@ function Deploy-NewRkeClusterNodes{
 
         Write-Host "Building $machineName to replace $($currentNodeName)"
         
-        $nodeDetail = Add-NewNodeToCluster -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType
+        $nodeDetail = Add-NodeToRke2Cluster -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType
         
         if (-not ($nodeDetail.success)) {
             Write-Error "Unable to provision server"
@@ -255,7 +255,7 @@ function Deploy-NewRkeClusterNodes{
             $clusterDns = Update-ClusterDns $clusterDns
         }
         
-        Remove-NodeFromCluster -vmName $currentServerName -useUnifi $useUnifi
+        Remove-NodeFromRke2Cluster -vmName $currentServerName -useUnifi $useUnifi
         
         $nodes += $nodeDetail;
         $currentServerIndex++;
@@ -264,7 +264,7 @@ function Deploy-NewRkeClusterNodes{
     $nodes | Format-Table
 }
 
-function Add-NodeToCluster{
+function Add-NodeToRke2Cluster{
     param (
         $machineName,
         $clusterName,
@@ -286,11 +286,11 @@ function Add-NodeToCluster{
     $httpFolder = ".\templates\ubuntu\basic\http\"
     
     if ($nodeType -eq "server") {
-        New-ServerConfig -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -existingClusterToken $existingClusterToken
+        New-Rke2ServerConfig -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -existingClusterToken $existingClusterToken
         $packerVariables = ".\templates\ubuntu\rke2\$vmSize-server.pkrvars.hcl"
     }
     else {
-        New-AgentConfig -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -existingClusterToken $existingClusterToken
+        New-Rke2AgentConfig -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -existingClusterToken $existingClusterToken
         $packerVariables = ".\templates\ubuntu\rke2\$nodeSize-agent.pkrvars.hcl"
     }  
 
@@ -318,7 +318,7 @@ function Add-NodeToCluster{
     }
 }
 
-function Remove-NodeFromCluster {
+function Remove-NodeFromRke2Cluster {
     param (
         $vmName,
         $clusterName,
@@ -336,7 +336,7 @@ function Remove-NodeFromCluster {
     Remove-HyperVVm -machineName $vmName -useUnifi $useUnifi
 }
 
-function New-AgentConfig {
+function New-Rke2AgentConfig {
     param(
         $machineName,
         $clusterName,
@@ -353,7 +353,7 @@ function New-AgentConfig {
     (ConvertTo-Yaml $agentConfig) | Set-Content -Path .\templates\ubuntu\rke2\files\agent-config.yaml
 }
 
-function New-ServerConfig {
+function New-Rke2ServerConfig {
     param(
         $machineName,
         $clusterName,
