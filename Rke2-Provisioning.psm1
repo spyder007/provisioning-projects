@@ -285,7 +285,7 @@ function Add-NodeToRke2Cluster{
     $packerTemplate = ".\templates\ubuntu\$vmType.pkr.hcl"
     $httpFolder = ".\templates\ubuntu\basic\http\"
     
-    if ($nodeType -eq "server") {
+    if ($nodeType -eq "server" -or $nodeType -eq "first-server") {
         New-Rke2ServerConfig -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -existingClusterToken $existingClusterToken
         $packerVariables = ".\templates\ubuntu\rke2\$vmSize-server.pkrvars.hcl"
     }
@@ -297,7 +297,7 @@ function Add-NodeToRke2Cluster{
     Write-Host "Building $machineName"
     $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -VariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi
 
-    if ($nodeType -eq "first-server") {
+    if ($detail.Success -and $nodeType -eq "first-server") {
         Write-Host "Waiting 3 minutes to ensure the Server is up and running"
         Start-Sleep -Seconds 180
 
@@ -307,8 +307,8 @@ function Add-NodeToRke2Cluster{
         if (-Not (Test-Path("./rke2-servers/$clusterName"))) {
             New-Item -ItemType Directory "./rke2-servers/$clusterName" | Out-Null
         }
-        Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" $($detail.userName)@$($serverip):rke2.yaml ./rke2-servers/$clusterName/rke2.yaml"
-        Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" $($detail.userName)@$($serverip):node-token ./rke2-servers/$clusterName/node-token"
+        Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" $($detail.userName)@$($detail.ipAddress):rke2.yaml ./rke2-servers/$clusterName/rke2.yaml"
+        Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" $($detail.userName)@$($detail.ipAddress):node-token ./rke2-servers/$clusterName/node-token"
         
         $config = (Get-Content -Raw "./rke2-servers/$clusterName/rke2.yaml")
         $config = $config.Replace("https://127.0.0.1", "https://cp-$($clusterName).$($dnsDomain)")
