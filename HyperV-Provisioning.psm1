@@ -174,21 +174,22 @@ function Remove-HyperVVm {
     $vmPath = $vm.Path
 
     if ($useUnifi) {
-        $networkAdapter = (Get-VmNetworkAdapter -VMName $machineName)[0]
-        if ($null -eq $networkAdapter) {
-            Write-Error "Could not find network adapter for $machineName"
-            return -1
-        }
-        
-        $macAddress = $networkAdapter.MacAddress
-        $macAddress = ($macAddress -replace '..(?!$)', '$&:').ToLower();
-        
-        Write-Host "Deleting Mac Address $macAddress from Unifi Controller"
-    
-        $deleteResult = Remove-UnifiClient $macAddress
+
+        $netInfo = Get-HyperVNetworkInfo -vmname $machineName
+        if ($null -ne $netInfo) {
+            $macAddress = $netInfo.MacAddress
             
-        if ($deleteResult -eq $false) {
-            Write-Host "Could not delete IP.  Stopping";
+            Write-Host "Deleting Mac Address $macAddress from Unifi Controller"
+        
+            $deleteResult = Remove-UnifiClient $macAddress
+                
+            if ($deleteResult -eq $false) {
+                Write-Error "Could not delete IP.  Stopping";
+                return -1
+            }
+        }
+        else {
+            Write-Error "Could not find VM IP Address.  Stopping";
             return -1
         }
     }
@@ -205,4 +206,21 @@ function Remove-HyperVVm {
     Remove-Vm -Name $machineName -Force
 
     Remove-Item -Recurse $vmPath
+}
+
+function Get-HyperVNetworkInfo{
+    param(
+        $vmname
+    )
+    $ipv4Regex = '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+    $networkAdapter = (Get-VmNetworkAdapter -VMName $vmname)[0]
+    if ($null -eq $networkAdapter) {
+        Write-Error "Could not find network adapter for $vmname"
+        return $null
+    }
+    return @{
+        MacAddressRaw = $networkAdapter.MacAddress
+        MacAddress = ($networkAdapter.MacAddress -replace '..(?!$)', '$&:').ToLower()
+        IpV4Address =  ($networkAdapter.IPAddresses | Where-Object {$_ -match $ipv4Regex } )
+    }
 }
