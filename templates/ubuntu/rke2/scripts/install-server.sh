@@ -2,10 +2,6 @@
 curl -sfL https://get.rke2.io --output install.sh
 sudo chmod +x install.sh
 
-# TODO: if ~/packertmp has a node-token file, configure this as an HA server
-
-
-# ELSE - Assume one server
 sudo ./install.sh
 
 # Copy the server configuration file
