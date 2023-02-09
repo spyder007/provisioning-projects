@@ -68,7 +68,7 @@
     }
 
     if (-not (Test-Path ".\templates\ubuntu\rke2\$nodeSize-agent.pkrvars.hcl")) {
-        Write-Error "Agent Variable file not found: .\templates\ubuntu\rke2\$nodeSize-server.pkrvars.hcl"
+        Write-Error "Agent Variable file not found: .\templates\ubuntu\rke2\$nodeSize-agent.pkrvars.hcl"
         return -1
     }
     
@@ -291,7 +291,7 @@ function Add-NodeToCluster{
     }
     else {
         New-AgentConfig -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -existingClusterToken $existingClusterToken
-        $packerVariables = ".\templates\ubuntu\rke2\$nodeSize-worker.pkrvars.hcl"
+        $packerVariables = ".\templates\ubuntu\rke2\$nodeSize-agent.pkrvars.hcl"
     }  
 
     Write-Host "Building $machineName"
