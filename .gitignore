@@ -6,3 +6,5 @@ packerhttp/
 packerlog.txt
 .vscode/*
 **/rke2-servers/*
+**/templates/ubuntu/rke2/files/agent-config.yaml
+**/templates/ubuntu/rke2/files/server-config.yaml
