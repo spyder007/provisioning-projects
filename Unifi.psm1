@@ -185,6 +185,96 @@ Function Invoke-ProvisionUnifiClient {
     }
 }
 
+function New-ClusterDns {
+    param (
+        $clusterName,
+        $dnsZone,
+        $controlPlaneIps = @(),
+        $trafficIps = @()
+    )
+    $apiUrl = [System.Environment]::GetEnvironmentVariable('API_PROVISION_URL', [System.EnvironmentVariableTarget]::User)
+
+    if ($null -eq $apiUrl) {
+        return $null
+    }
+
+    $requestData = @{
+        name = "$clusterName"
+        zoneName = "$dnsZone"
+        controlPlaneIps = $controlPlaneIps
+        trafficIps = $trafficIps
+    }
+
+    $authToken = Get-AuthToken -scope "unifi.ipmanager"
+
+    $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+    $headers.Add("Authorization", "Bearer $authToken")
+    $headers.Add("Content-Type", "application/json")
+
+    $apiUrl = $apiUrl.TrimEnd("/")
+    $result = Invoke-RestMethod "$apiUrl/clusterdns" -headers $headers -method Post -Body (ConvertTo-Json $requestData)
+
+    if ($false -eq $result.Success) {
+        Write-Error "Error Creating new Cluster DNS: $($result.Errors)"
+        return $false
+    }
+    return $result.data
+}
+
+function Get-ClusterDns {
+    param(
+        $clusterName,
+        $dnsZone
+    )
+    $apiUrl = [System.Environment]::GetEnvironmentVariable('API_PROVISION_URL', [System.EnvironmentVariableTarget]::User)
+
+    if ($null -eq $apiUrl) {
+        return $null
+    }
+
+    $authToken = Get-AuthToken -scope "unifi.ipmanager"
+
+    $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+    $headers.Add("Authorization", "Bearer $authToken")
+
+    $apiUrl = $apiUrl.TrimEnd("/")
+
+    $result = Invoke-RestMethod "$apiUrl/clusterdns/$($clusterName)?zone=$dnsZone" -headers $headers -method Get
+    
+    if ($false -eq $result.Success) {
+        Write-Error "Error getting clients: $($result.Errors)"
+        return $false
+    }
+    return $result.data
+}
+
+function Update-ClusterDns {
+    param(
+        $clusterDnsRecord
+    )
+    $apiUrl = [System.Environment]::GetEnvironmentVariable('API_PROVISION_URL', [System.EnvironmentVariableTarget]::User)
+
+    if ($null -eq $apiUrl) {
+        return $null
+    }
+
+    $authToken = Get-AuthToken -scope "unifi.ipmanager"
+
+    $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+    $headers.Add("Authorization", "Bearer $authToken")
+    $headers.Add("Content-Type", "application/json")
+
+    $apiUrl = $apiUrl.TrimEnd("/")
+
+    $result = Invoke-RestMethod "$apiUrl/clusterdns/$($clusterDnsRecord.name)" -headers $headers -method Put -Body (ConvertTo-Json $clusterDnsRecord)
+
+    if ($false -eq $result.Success) {
+        Write-Error "Error updating Cluster DNS Record: $($result.Errors)"
+        return $false
+    }
+    return $result.data
+}
+
 Function Get-UnifiClients {
     $apiUrl = [System.Environment]::GetEnvironmentVariable('API_PROVISION_URL', [System.EnvironmentVariableTarget]::User)
 

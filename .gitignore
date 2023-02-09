@@ -5,3 +5,4 @@ packerhttp/
 **/*.pkrvars.hcl
 packerlog.txt
 .vscode/*
+**/rke2-servers/*
