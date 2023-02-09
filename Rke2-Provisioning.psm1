@@ -316,6 +316,7 @@ function Add-NodeToRke2Cluster{
         
         $existingClusterToken = (Get-Content -Raw "./rke2-servers/$clusterName/node-token")
     }
+    return $detail;
 }
 
 function Remove-NodeFromRke2Cluster {
