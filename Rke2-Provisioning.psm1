@@ -502,7 +502,7 @@ function New-Rke2ServerConfig {
     if (-not ([string]::IsNullOrWhiteSpace($dnsDomain))) {
         $serverConfig."tls-san" += "cp-$($clusterName).$($dnsDomain)";
     }
-    if ($null -ne $existingClusterToken) {
+    if (-not ([string]::IsNullOrWhiteSpace($existingClusterToken))) {
         $serverConfig."token" = $existingClusterToken;
         $serverConfig."server" = "https://$($serverUrl):9345"
     }
