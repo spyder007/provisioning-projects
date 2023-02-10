@@ -430,7 +430,7 @@ function Get-ClusterInfo {
 
     $currentNodes = Get-Vm "$clusterName-*"
 
-    $nodeStats = ($currentNodes | ForEach-Object { [int] ("0x{1}" -f $_.Name.Substring($_.Name.LastIndexOf("-") + 1)) } | Measure-Object -Max -Min)
+    $nodeStats = ($currentNodes | ForEach-Object { [int] ("0x{0}" -f $_.Name.Substring($_.Name.LastIndexOf("-") + 1)) } | Measure-Object -Max -Min)
     $currentNodeNames = $currentNodes | ForEach-Object { $_.Name }
 
     return @{
