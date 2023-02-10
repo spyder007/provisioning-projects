@@ -237,7 +237,7 @@ function Deploy-NewRke2ClusterNodes{
         }
         
         if ($useUnifi) {
-            $oldNetInfo = Get-HyperVNetworkInfo -vmname $currentServerName
+            $oldNetInfo = Get-HyperVNetworkInfo -vmname $currentNodeName
 
             # replace the current server IP with the new server IP in both the traffic and control plane
             $clusterDns.traffic | ForEach-Object { if ($_.data -eq $oldNetInfo.IpV4Address) { $_.data = $nodeDetail.IpAddress } }
@@ -246,7 +246,7 @@ function Deploy-NewRke2ClusterNodes{
             $clusterDns = Update-ClusterDns $clusterDns
         }
         
-        Remove-NodeFromRke2Cluster -vmName $currentServerName -useUnifi $useUnifi
+        Remove-NodeFromRke2Cluster -vmName $currentNodeName -useUnifi $useUnifi
         
         $nodes += $nodeDetail;
         $currentNodeIndex++;
