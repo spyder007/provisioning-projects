@@ -75,14 +75,14 @@ function New-Rke2Cluster {
     $nodes = @()
     
     for ($i=$nodeCountStart; $i -lt $serverNodeCount + $nodeCountStart; $i++) {
-        $machineName = "{0}-srv-{1:x3}" -f $clusterName, $i
-    
+
         if ($i -eq $nodeCountStart) {
             $nodeType = "first-server"
         }
         else {
             $nodeType = "server"
         }
+        $machineName = Get-Rke2NodeMachineName $clusterName $nodeType $i
         $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType
    
         if ($nodeDetail.success) {
@@ -112,7 +112,8 @@ function New-Rke2Cluster {
 
     # Create Agents
     for ($i=$agentCountStart; $i -lt $agentNodeCount + $agentCountStart; $i++) {
-        $machineName = "{0}-agt-{1:x3}" -f $clusterName, $i
+        $machineName = Get-Rke2NodeMachineName $clusterName "agent" $i
+        
         Write-Host "Building $machineName"
     
         $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType "agent"
@@ -228,8 +229,7 @@ function Deploy-NewRke2ClusterNodes{
         else {
             $nodeType = "server"
         }
-
-        $machineName = "{0}-{1}-{2:x3}" -f $clusterName, (if ($nodeType -eq "server") { "srv" } else {"agt" } ), $i
+        $machineName = Get-Rke2NodeMachineName $clusterName $nodeType $i
 
         Write-Host "Building $machineName to replace $($currentNodeName)"
         
@@ -289,8 +289,9 @@ function Add-NodeToRke2Cluster {
     if ($nodeNumber -gt [int]"0xfff") {
         $nodeNumber = 1
     }
-    $machineName = "{0}-{1}-{2:x3}" -f $clusterName, (if ($nodeType -eq "server") { "srv" } else {"agt" } ), $nodeNumber
 
+    $machineName = Get-Rke2NodeMachineName $clusterName $nodeType $nodeNumber
+    
     $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmType $vmType -vmSize $vmSize -nodeType $nodeType -packerErrorAction $packerErrorAction
 
     if ($nodeDetail.success) {
@@ -447,4 +448,20 @@ function Get-ClusterInfo {
         Stats = $nodeStats
         VirtualMachineNames = $currentNodeNames
     }
+}
+
+Function Get-Rke2NodeMachineName {
+    param (
+        $clusterName,
+        [ValidateSet("first-server", "server", "agent")]
+        $nodeType,
+        $nodeNumber
+    )
+
+    $typeNotation = "srv";
+    if ($nodeType -eq "agent") {
+        $typeNotation = "agt"
+    }
+
+    return "{0}-{1}-{2:x3}" -f $clusterName, $typeNotation, $nodeNumber
 }
