@@ -197,7 +197,7 @@ function Deploy-NewRke2ClusterNodes{
 
     if (-not (Test-Path "./rke2-servers/$clusterName/node-token")) {
         Write-Error "Could not find server token."
-        exit -1;    
+        return;    
     }
 
     if ($useUnifi) {
