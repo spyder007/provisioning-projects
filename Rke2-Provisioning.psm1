@@ -613,7 +613,7 @@ Function Get-Rke2Settings {
     }
     return @{
         nodePrefix = "$nodePrefix"
-        clusterStorage = "$clusterStoragePath"
+        clusterStorage = "$clusterStorage"
     }
 }
 
