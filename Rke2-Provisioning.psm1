@@ -267,9 +267,12 @@ function Add-NodeToRke2Cluster {
         $vmSize,
         [ValidateSet("server", "agent")]
         $nodeType,
+        [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
+        $packerErrorAction = "cleanup",
         [bool] $useUnifi = $true
     )
     Import-Module ./HyperV-Provisioning.psm1
+    
     if ($useUnifi) {
         Import-Module ./Unifi.psm1 -Force
     }
@@ -277,7 +280,7 @@ function Add-NodeToRke2Cluster {
 
     if (-not (Test-Path "./rke2-servers/$clusterName/node-token")) {
         Write-Error "Could not find server token."
-        exit -1;    
+        return -1;    
     }
 
     $clusterInfo = Get-ClusterInfo $clusterName
@@ -288,7 +291,7 @@ function Add-NodeToRke2Cluster {
     }
     $machineName = "{0}-{1}-{2:x3}" -f $clusterName, (if ($nodeType -eq "server") { "srv" } else {"agt" } ), $nodeNumber
 
-    $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmType $vmType -vmSize $vmSize -nodeType $nodeType
+    $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmType $vmType -vmSize $vmSize -nodeType $nodeType -packerErrorAction $packerErrorAction
 
     if ($nodeDetail.success) {
         if ($useUnifi) {
@@ -311,7 +314,8 @@ function Add-NodeToRke2Cluster {
     }
 }
 
-function New-Rke2ClusterNode{
+function New-Rke2ClusterNode
+{
     param (
         $machineName,
         $clusterName,
@@ -320,9 +324,13 @@ function New-Rke2ClusterNode{
         $vmType,
         $vmSize,
         [ValidateSet("first-server", "server", "agent")]
-        $nodeType
+        $nodeType,
+        [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
+        $packerErrorAction = "cleanup"
     )
-    if ($nodeType -ne "first-server") {
+    
+    if ($nodeType -ne "first-server") 
+    {
         if (-not (Test-Path "./rke2-servers/$clusterName/node-token")) {
             Write-Error "Could not find server token."
             exit -1;    
