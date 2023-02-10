@@ -62,17 +62,17 @@ function New-Rke2Cluster {
 
     if (Test-Path "$($rke2Settings.clusterStorage)/$clusterName/node-token") {
         Write-Error "Cluster with name $clusterName already found.  Use Add-NodeToCluster or Remove-NodeFromRke2Cluster to manage."
-        exit -1
+        return
     }
 
     if (-not (Test-Path ".\templates\ubuntu\rke2\$nodeSize-server.pkrvars.hcl")) {
         Write-Error "Server Variable file not found: .\templates\ubuntu\rke2\$nodeSize-server.pkrvars.hcl"
-        return -1
+        return
     }
 
     if (-not (Test-Path ".\templates\ubuntu\rke2\$nodeSize-agent.pkrvars.hcl")) {
         Write-Error "Agent Variable file not found: .\templates\ubuntu\rke2\$nodeSize-agent.pkrvars.hcl"
-        return -1
+        return
     }
     
     $nodes = @()
@@ -337,7 +337,7 @@ function New-Rke2ClusterNode
     {
         if (-not (Test-Path "$($rke2Settings.clusterStorage)/$clusterName/node-token")) {
             Write-Error "Could not find server token."
-            exit -1;    
+            return;    
         }
         $existingClusterToken = (Get-Content -Raw "$($rke2Settings.clusterStorage)/$clusterName/node-token")
     }
@@ -381,7 +381,7 @@ function New-Rke2ClusterNode
 function Remove-NodeFromRke2Cluster {
     <#
     .SYNOPSIS
-    Generate a new server-config.yaml file which will be used to configure a server node.
+    Remove the given machine from the cluster
 
     .DESCRIPTION
     Using the cluster name, retrieve the matching VMs and associated information
@@ -396,7 +396,7 @@ function Remove-NodeFromRke2Cluster {
     If true, use Unifi module to remove fixed IP records
 
     .EXAMPLE
-    PS> New-Rke2AgentConfig -machineName "test-srv-001" -clusterName "test" -dnsDomain "domain.local" -existingClusterToken "secretTokenValue"
+    PS> Remove-NodeFromRke2Cluster -machineName "test-srv-001" -clusterName "test" -dnsDomain "domain.local" -existingClusterToken "secretTokenValue"
     #>
     param (
         $machineName,
@@ -406,13 +406,13 @@ function Remove-NodeFromRke2Cluster {
     $rke2Settings = Get-Rke2Settings
     if (-not (Test-Path "$($rke2Settings.clusterStorage)/$clusterName/remote.yaml")) {
         Write-Error "Could not find remote kube configuration: $($rke2Settings.clusterStorage)/$clusterName/remote.yaml"
-        exit -1;    
+        return;    
     }
     
-    Invoke-Expression "kubectl --kubeconfig `"$($rke2Settings.clusterStorage)/$clusterName/remote.yaml`" drain --ignore-daemonsets --delete-emptydir-data $machineName" 
+    Invoke-Expression "kubectl --kubeconfig `"$($rke2Settings.clusterStorage)/$clusterName/remote.yaml`" drain --ignore-daemonsets --delete-emptydir-data $machineName" | Out-Host
     Start-Sleep 30
-    Invoke-Expression "kubectl --kubeconfig `"$($rke2Settings.clusterStorage)/$clusterName/remote.yaml`" delete node/$($machineName)" 
-    Remove-HyperVVm -machineName $machineName -useUnifi $useUnifi
+    Invoke-Expression "kubectl --kubeconfig `"$($rke2Settings.clusterStorage)/$clusterName/remote.yaml`" delete node/$($machineName)" | Out-Host
+    Remove-HyperVVm -machineName $machineName -useUnifi $useUnifi | Out-Host
 }
 
 function New-Rke2AgentConfig {
