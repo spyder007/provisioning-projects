@@ -83,10 +83,10 @@ function New-Rke2Cluster {
         else {
             $nodeType = "server"
         }
-        $nodeDetail = Add-NodeToRke2Cluster -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType
+        $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType
    
         if ($nodeDetail.success) {
-            $nodes += $detail;
+            $nodes += $nodeDetail;
             if ($useUnifi) {
                 if ($nodeType -eq "first-server") {
                     $clusterDns = New-ClusterDns -clusterName "$clusterName" -dnsZone "$dnsDomain" -controlPlaneIps (,"$($nodeDetail.ipAddress)") -trafficIps (,"$($nodeDetail.ipAddress)")
@@ -111,14 +111,14 @@ function New-Rke2Cluster {
     $agentCountStart = $serverNodeCount + $nodeCountStart
 
     # Create Agents
-    for ($i=$agentCountStart+1; $i -lt $agentNodeCount + $agentCountStart; $i++) {
+    for ($i=$agentCountStart; $i -lt $agentNodeCount + $agentCountStart; $i++) {
         $machineName = "{0}-agt-{1:x3}" -f $clusterName, $i
         Write-Host "Building $machineName"
     
-        $nodeDetail = Add-NodeToRke2Cluster -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType "agent"
+        $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType "agent"
 
         if ($nodeDetail.success) {
-            $nodes += $detail;
+            $nodes += $nodeDetail;
             if ($useUnifi) {
                 # Agents are traffic only
                 $clusterDns.traffic += @{
@@ -172,8 +172,6 @@ function Deploy-NewRke2ClusterNodes{
 
     param (
         [Parameter(Mandatory=$true,Position=1)]
-        $baseName,
-        [Parameter(Mandatory=$true,Position=2)]
         $clusterName,
         [Parameter()]
         $dnsDomain = "domain.local",
@@ -210,22 +208,19 @@ function Deploy-NewRke2ClusterNodes{
     }
 
     # Get all of the current VM Nodes for this cluster
-    $currentNodes = Get-Vm "$baseName-*"
-
-    $nodeStats = ($currentNodes | ForEach-Object { [int] $_.Name.Replace("k2-nonprod-srv-","0x") } | Measure-Object -Max -Min)
-    $currentNodeNames = $currentNodes | ForEach-Object { $_.Name }
+    $clusterInfo = Get-ClusterInfo $clusterName
     
     # Start servers at max plus 1.
-    $newNodeStart = $nodeStats.Maximum + 1
+    $newNodeStart = $clusterInfo.Stats.Maximum + 1
     # If we are going to hit the max node count, cycle back to the beginning
-    if ($nodeStats.Maximum + $nodeStats.Count -ge [int]"0xfff") {
+    if ($clusterInfo.Stats.Maximum + $clusterInfo.Stats.Count -ge [int]"0xfff") {
         $newNodeStart = 1
     }
 
     $nodes = @()
     $currentServerIndex = 0;
-    for ($i=$newNodeStart; $i -lt $nodeStats.Count + $newNodeStart; $i++) {
-        $currentNodeName = $currentNodeNames[$currentServerIndex];
+    for ($i=$newNodeStart; $i -lt $clusterInfo.Stats.Count + $newNodeStart; $i++) {
+        $currentNodeName = $clusterInfo.VirtualMachineNames[$currentServerIndex];
 
         if ($currentNodeName.Contains("-agt-")) {
             $nodeType = "agent"
@@ -234,11 +229,11 @@ function Deploy-NewRke2ClusterNodes{
             $nodeType = "server"
         }
 
-        $machineName = "{0}-{1}-{2:x3}" -f $baseName, (if ($nodeType -eq "server") { "srv" } else {"agt" } ), $i
+        $machineName = "{0}-{1}-{2:x3}" -f $clusterName, (if ($nodeType -eq "server") { "srv" } else {"agt" } ), $i
 
         Write-Host "Building $machineName to replace $($currentNodeName)"
         
-        $nodeDetail = Add-NodeToRke2Cluster -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType
+        $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType
         
         if (-not ($nodeDetail.success)) {
             Write-Error "Unable to provision server"
@@ -263,8 +258,60 @@ function Deploy-NewRke2ClusterNodes{
 
     $nodes | Format-Table
 }
+function Add-NodeToRke2Cluster {
+    param(
+        $clusterName,
+        $dnsDomain,
+        [ValidateSet("ubuntu-2204")]
+        $vmType,
+        $vmSize,
+        [ValidateSet("server", "agent")]
+        $nodeType,
+        [bool] $useUnifi = $true
+    )
+    Import-Module ./HyperV-Provisioning.psm1
+    if ($useUnifi) {
+        Import-Module ./Unifi.psm1 -Force
+    }
+    Import-Module powershell-yaml   
 
-function Add-NodeToRke2Cluster{
+    if (-not (Test-Path "./rke2-servers/$clusterName/node-token")) {
+        Write-Error "Could not find server token."
+        exit -1;    
+    }
+
+    $clusterInfo = Get-ClusterInfo $clusterName
+
+    $nodeNumber = $clusterInfo.Stats.Maximum + 1
+    if ($nodeNumber -gt [int]"0xfff") {
+        $nodeNumber = 1
+    }
+    $machineName = "{0}-{1}-{2:x3}" -f $clusterName, (if ($nodeType -eq "server") { "srv" } else {"agt" } ), $nodeNumber
+
+    $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmType $vmType -vmSize $vmSize -nodeType $nodeType
+
+    if ($nodeDetail.success) {
+        if ($useUnifi) {
+            $clusterDns = Get-ClusterDns -clusterName $clusterName
+            if ($nodeType -eq "server") {
+                $clusterDns.controlPlane += @{
+                    zoneName = "$dnsDomain"
+                    hostName = "cp-$($clusterName)"
+                    data = "$($nodeDetail.ipAddress)"
+                }
+            }
+                
+            $clusterDns.traffic += @{
+                zoneName = "$dnsDomain"
+                hostName = "tfx-$($clusterName)"
+                data = "$($nodeDetail.ipAddress)"
+            }
+            $clusterDns = Update-ClusterDns $clusterDns
+        }
+    }
+}
+
+function New-Rke2ClusterNode{
     param (
         $machineName,
         $clusterName,
@@ -374,4 +421,22 @@ function New-Rke2ServerConfig {
         $serverConfig."server" = "https://$($serverUrl):9345"
     }
     (ConvertTo-Yaml $serverConfig) | Set-Content -Path .\templates\ubuntu\rke2\files\server-config.yaml
+}
+
+function Get-ClusterInfo {
+    param(
+        $clusterName
+    )
+
+    $currentNodes = Get-Vm "$clusterName-*"
+
+    $nodeStats = ($currentNodes | ForEach-Object { [int] ("0x{1}" -f $_.Name.Substring($_.Name.LastIndexOf("-") + 1)) } | Measure-Object -Max -Min)
+    $currentNodeNames = $currentNodes | ForEach-Object { $_.Name }
+
+    return @{
+        ClusterName = $clusterName
+        VirtualMachines = $currentNodes
+        Stats = $nodeStats
+        VirtualMachineNames = $currentNodeNames
+    }
 }
