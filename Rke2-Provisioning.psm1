@@ -1,15 +1,16 @@
 function New-Rke2Cluster {
     <#
         .SYNOPSIS
-        Create a set of docker-enabled Ubuntu nodes for a Kubernetes cluster.
+        Create a new RKE2 cluster
 
         .DESCRIPTION
-        Create a set of docker-enabled Ubuntu nodes for a Kubernetes cluster.  This script will provision multiple machines, using the nodeCount
-        and nodeStart parameters to determine machine name.
+        Provision new RKE2 Servers and Agents in Hyper-V to create a new cluster
 
-        .PARAMETER baseName
-        The base name of the VM nodes.  This name will be appended with a count, which is a six-digit hexidecimal representation of the
-        VM.
+        .PARAMETER clusterName
+        The name of the cluster to be created.  This will be used in naming templates for VMs and DNS Entries (if using Unifi)
+
+        .PARAMETER dnsDomain
+        The DNS 
 
         .PARAMETER type
         The type of node.  Current supported types are ubuntu-2204 and ubuntu-2004
@@ -83,7 +84,7 @@ function New-Rke2Cluster {
             $nodeType = "server"
         }
         $machineName = Get-Rke2NodeMachineName $clusterName $nodeType $i
-        $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType
+        $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction
    
         if ($nodeDetail.success) {
             $nodes += $nodeDetail;
@@ -116,7 +117,7 @@ function New-Rke2Cluster {
         
         Write-Host "Building $machineName"
     
-        $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType "agent"
+        $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType "agent" -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction
 
         if ($nodeDetail.success) {
             $nodes += $nodeDetail;
@@ -199,11 +200,6 @@ function Deploy-NewRke2ClusterNodes{
         exit -1;    
     }
 
-    if (-not (Test-Path $packerVariables)) {
-        Write-Error "Variable file not found: $packerVariables"
-        return -1
-    }
-
     if ($useUnifi) {
         $clusterDns = Get-ClusterDns -clusterName $clusterName
     }
@@ -219,9 +215,9 @@ function Deploy-NewRke2ClusterNodes{
     }
 
     $nodes = @()
-    $currentServerIndex = 0;
+    $currentNodeIndex = 0;
     for ($i=$newNodeStart; $i -lt $clusterInfo.Stats.Count + $newNodeStart; $i++) {
-        $currentNodeName = $clusterInfo.VirtualMachineNames[$currentServerIndex];
+        $currentNodeName = $clusterInfo.VirtualMachineNames[$currentNodeIndex];
 
         if ($currentNodeName.Contains("-agt-")) {
             $nodeType = "agent"
@@ -233,11 +229,11 @@ function Deploy-NewRke2ClusterNodes{
 
         Write-Host "Building $machineName to replace $($currentNodeName)"
         
-        $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType
+        $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction
         
         if (-not ($nodeDetail.success)) {
             Write-Error "Unable to provision server"
-            exit -1;
+            return -1;
         }
         
         if ($useUnifi) {
@@ -253,7 +249,7 @@ function Deploy-NewRke2ClusterNodes{
         Remove-NodeFromRke2Cluster -vmName $currentServerName -useUnifi $useUnifi
         
         $nodes += $nodeDetail;
-        $currentServerIndex++;
+        $currentNodeIndex++;
     }
 
     $nodes | Format-Table
@@ -269,6 +265,8 @@ function Add-NodeToRke2Cluster {
         $nodeType,
         [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
         $packerErrorAction = "cleanup",
+        [Parameter()]
+        $OutputFolder="d:\\Hyper-V\\",
         [bool] $useUnifi = $true
     )
     Import-Module ./HyperV-Provisioning.psm1
@@ -289,10 +287,10 @@ function Add-NodeToRke2Cluster {
     if ($nodeNumber -gt [int]"0xfff") {
         $nodeNumber = 1
     }
-
+    
     $machineName = Get-Rke2NodeMachineName $clusterName $nodeType $nodeNumber
     
-    $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmType $vmType -vmSize $vmSize -nodeType $nodeType -packerErrorAction $packerErrorAction
+    $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmType $vmType -vmSize $vmSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction
 
     if ($nodeDetail.success) {
         if ($useUnifi) {
@@ -327,7 +325,9 @@ function New-Rke2ClusterNode
         [ValidateSet("first-server", "server", "agent")]
         $nodeType,
         [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
-        $packerErrorAction = "cleanup"
+        $packerErrorAction = "cleanup",
+        [Parameter()]
+        $OutputFolder="d:\\Hyper-V\\"
     )
     
     if ($nodeType -ne "first-server") 
@@ -347,7 +347,7 @@ function New-Rke2ClusterNode
     }
     else {
         New-Rke2AgentConfig -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -existingClusterToken $existingClusterToken
-        $packerVariables = ".\templates\ubuntu\rke2\$nodeSize-agent.pkrvars.hcl"
+        $packerVariables = ".\templates\ubuntu\rke2\$vmSize-agent.pkrvars.hcl"
     }  
 
     Write-Host "Building $machineName"
@@ -376,10 +376,28 @@ function New-Rke2ClusterNode
 }
 
 function Remove-NodeFromRke2Cluster {
+    <#
+    .SYNOPSIS
+    Generate a new server-config.yaml file which will be used to configure a server node.
+
+    .DESCRIPTION
+    Using the cluster name, retrieve the matching VMs and associated information
+
+    .PARAMETER machineName
+    The VM Name to delete
+
+    .PARAMETER clusterName
+    Used to find cluster connection data to drain and delete node
+
+    .PARAMETER useUnifi
+    If true, use Unifi module to remove fixed IP records
+
+    .EXAMPLE
+    PS> New-Rke2AgentConfig -machineName "test-srv-001" -clusterName "test" -dnsDomain "domain.local" -existingClusterToken "secretTokenValue"
+    #>
     param (
-        $vmName,
+        $machineName,
         $clusterName,
-        $dnsDomain,
         [bool]$useUnifi = $true
     )
     if (-not (Test-Path "./rke2-servers/$clusterName/remote.yaml")) {
@@ -387,21 +405,48 @@ function Remove-NodeFromRke2Cluster {
         exit -1;    
     }
     
-    Invoke-Expression "kubectl --kubeconfig ./rke2-servers/$clusterName/remote.yaml drain --ignore-daemonsets --delete-emptydir-data $vmName" 
-    Start-Sleep 180
-    Invoke-Expression "kubectl --kubeconfig ./rke2-servers/$clusterName/remote.yaml delete node/$($vmName)" 
-    Remove-HyperVVm -machineName $vmName -useUnifi $useUnifi
+    Invoke-Expression "kubectl --kubeconfig ./rke2-servers/$clusterName/remote.yaml drain --ignore-daemonsets --delete-emptydir-data $machineName" 
+    Start-Sleep 30
+    Invoke-Expression "kubectl --kubeconfig ./rke2-servers/$clusterName/remote.yaml delete node/$($machineName)" 
+    Remove-HyperVVm -machineName $machineName -useUnifi $useUnifi
 }
 
 function New-Rke2AgentConfig {
-    param(
-        $machineName,
-        $clusterName,
-        $dnsDomain,
-        $existingClusterToken
-    )
-    $serverUrl = "cp-$($clusterName).$($dnsDomain)"
+    <#
+    .SYNOPSIS
+    Generate a new server-config.yaml file which will be used to configure a server node.
 
+    .DESCRIPTION
+    Using the cluster name, retrieve the matching VMs and associated information
+
+    .PARAMETER machineName
+    Used to set the node-name for the RKE2 node
+
+    .PARAMETER clusterName
+    Used with dnsDomain to set tls-san values
+
+    .PARAMETER dnsDomain
+    Used to build alternative tls-san values
+
+    .PARAMETER existingClusterToken
+    Secret token for previously created server
+
+    .EXAMPLE
+    PS> New-Rke2AgentConfig -machineName "test-srv-001" -clusterName "test" -dnsDomain "domain.local" -existingClusterToken "secretTokenValue"
+    #>
+    param(
+        [string] $machineName,
+        [string] $clusterName,
+        [string] $dnsDomain,
+        [string] $existingClusterToken
+    )
+    if (-not ([string]::IsNullOrWhiteSpace($dnsDomain))) {
+        $serverUrl = "cp-$($clusterName).$($dnsDomain)"
+    }
+    else {
+        $serverUrl = "cp-$($clusterName)"
+    }
+    
     $agentConfig = convertfrom-yaml (get-content .\templates\ubuntu\rke2\configuration\agent-config.yaml -Raw)
     $agentConfig."node-name" = $machineName
     $agentConfig."server" = "https://$($serverUrl):9345"
@@ -411,20 +456,48 @@ function New-Rke2AgentConfig {
 }
 
 function New-Rke2ServerConfig {
-    param(
-        $machineName,
-        $clusterName,
-        $dnsDomain,
-        $existingClusterToken
-    )
+    <#
+    .SYNOPSIS
+    Generate a new server-config.yaml file which will be used to configure a server node.
 
-    $serverUrl = "cp-$($clusterName).$($dnsDomain)"
+    .DESCRIPTION
+    Using the cluster name, retrieve the matching VMs and associated information
+
+    .PARAMETER machineName
+    Used to set the node-name for the RKE2 node
+
+    .PARAMETER clusterName
+    Used with dnsDomain to set tls-san values
+
+    .PARAMETER dnsDomain
+    Used to build alternative tls-san values
+
+    .PARAMETER existingClusterToken
+    Secret token for previously created server
+
+    .EXAMPLE
+    PS> New-Rke2ServerConfig -machineName "test-srv-001" -clusterName "test" -dnsDomain "domain.local" -existingClusterToken "secretTokenValue"
+    #>
+    param(
+        [string] $machineName,
+        [string] $clusterName,
+        [string] $dnsDomain,
+        [string] $existingClusterToken
+    )
+    if (-not ([string]::IsNullOrWhiteSpace($dnsDomain))) {
+        $serverUrl = "cp-$($clusterName).$($dnsDomain)"
+    }
+    else {
+        $serverUrl = "cp-$($clusterName)"
+    }
 
     $serverConfig = convertfrom-yaml (get-content .\templates\ubuntu\rke2\configuration\server-config.yaml -Raw)
     $serverConfig."node-name" = $machineName
     $serverConfig."tls-san" = @()
     $serverConfig."tls-san" += "cp-$clusterName"
-    $serverConfig."tls-san" += "cp-$($clusterName).$($dnsDomain)";
+    if (-not ([string]::IsNullOrWhiteSpace($dnsDomain))) {
+        $serverConfig."tls-san" += "cp-$($clusterName).$($dnsDomain)";
+    }
     if ($null -ne $existingClusterToken) {
         $serverConfig."token" = $existingClusterToken;
         $serverConfig."server" = "https://$($serverUrl):9345"
@@ -433,8 +506,21 @@ function New-Rke2ServerConfig {
 }
 
 function Get-ClusterInfo {
+    <#
+    .SYNOPSIS
+    Get information on the VMs for the given cluster
+
+    .DESCRIPTION
+    Using the cluster name, retrieve the matching VMs and associated information
+
+    .PARAMETER clusterName
+    The name of the cluster, used to search VMs
+
+    .EXAMPLE
+    PS> Get-ClusterInfo -clusterName "test" -nodeType "server" 1
+    #>
     param(
-        $clusterName
+        [string] $clusterName
     )
 
     $currentNodes = Get-Vm "$clusterName-*"
@@ -451,17 +537,35 @@ function Get-ClusterInfo {
 }
 
 Function Get-Rke2NodeMachineName {
+    <#
+    .SYNOPSIS
+    Create a Machine Name for the node
+
+    .DESCRIPTION
+    Create a Machine Name for the node        
+
+    .PARAMETER clusterBase
+    The name of the cluster to be created.  This will be used in naming templates for VMs and DNS Entries (if using Unifi)
+
+    .PARAMETER nodeType
+    The Node type.  Allowed values are "agent", "server", or "first-server"
+
+    .PARAMETER nodeNumber
+    The number of the node to be using as hex in the machine name.
+
+    .EXAMPLE
+    PS> Get-Rke2NodeMachineName -clusterBase "test" -nodeType "server" 1
+    #>
     param (
-        $clusterName,
+        [string] $clusterBase,
         [ValidateSet("first-server", "server", "agent")]
-        $nodeType,
-        $nodeNumber
+        [string] $nodeType,
+        [int] $nodeNumber
     )
 
     $typeNotation = "srv";
     if ($nodeType -eq "agent") {
         $typeNotation = "agt"
     }
-
-    return "{0}-{1}-{2:x3}" -f $clusterName, $typeNotation, $nodeNumber
+    return [string]::Format("{0}-{1}-{2:x3}", $clusterBase, $typeNotation, $nodeNumber)
 }
