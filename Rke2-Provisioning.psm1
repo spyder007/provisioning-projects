@@ -58,7 +58,9 @@ function New-Rke2Cluster {
     Import-Module ./HyperV-Provisioning.psm1
     Import-Module powershell-yaml
     
-    if (Test-Path "./rke2-servers/$clusterName/node-token") {
+    $rke2Settings = Get-Rke2Settings
+
+    if (Test-Path "$($rke2Settings.clusterStorage)/$clusterName/node-token") {
         Write-Error "Cluster with name $clusterName already found.  Use Add-NodeToCluster or Remove-NodeFromRke2Cluster to manage."
         exit -1
     }
@@ -194,8 +196,9 @@ function Deploy-NewRke2ClusterNodes{
         Import-Module ./Unifi.psm1 -Force
     }
     Import-Module powershell-yaml   
+    $rke2Settings = Get-Rke2Settings
 
-    if (-not (Test-Path "./rke2-servers/$clusterName/node-token")) {
+    if (-not (Test-Path "$($rke2Settings.clusterStorage)$clusterName/node-token")) {
         Write-Error "Could not find server token."
         return;    
     }
@@ -246,7 +249,7 @@ function Deploy-NewRke2ClusterNodes{
             $clusterDns = Update-ClusterDns $clusterDns
         }
         
-        Remove-NodeFromRke2Cluster -vmName $currentNodeName -useUnifi $useUnifi
+        Remove-NodeFromRke2Cluster -machineName $currentNodeName -clusterName $clusterName -useUnifi $useUnifi
         
         $nodes += $nodeDetail;
         $currentNodeIndex++;
@@ -275,8 +278,8 @@ function Add-NodeToRke2Cluster {
         Import-Module ./Unifi.psm1 -Force
     }
     Import-Module powershell-yaml   
-
-    if (-not (Test-Path "./rke2-servers/$clusterName/node-token")) {
+    $rke2Settings = Get-Rke2Settings
+    if (-not (Test-Path "$($rke2Settings.clusterStorage)/$clusterName/node-token")) {
         Write-Error "Could not find server token."
         return -1;    
     }
@@ -329,14 +332,14 @@ function New-Rke2ClusterNode
         [Parameter()]
         $OutputFolder="d:\\Hyper-V\\"
     )
-    
+    $rke2Settings = Get-Rke2Settings
     if ($nodeType -ne "first-server") 
     {
-        if (-not (Test-Path "./rke2-servers/$clusterName/node-token")) {
+        if (-not (Test-Path "$($rke2Settings.clusterStorage)/$clusterName/node-token")) {
             Write-Error "Could not find server token."
             exit -1;    
         }
-        $existingClusterToken = (Get-Content -Raw "./rke2-servers/$clusterName/node-token")
+        $existingClusterToken = (Get-Content -Raw "$($rke2Settings.clusterStorage)/$clusterName/node-token")
     }
     $packerTemplate = ".\templates\ubuntu\$vmType.pkr.hcl"
     $httpFolder = ".\templates\ubuntu\basic\http\"
@@ -360,17 +363,17 @@ function New-Rke2ClusterNode
         if (Test-Path "c:\tmp") {
             Remove-Item -Recurse "c:\tmp"
         }
-        if (-Not (Test-Path("./rke2-servers/$clusterName"))) {
-            New-Item -ItemType Directory "./rke2-servers/$clusterName" | Out-Null
+        if (-Not (Test-Path("$($rke2Settings.clusterStorage)/$clusterName"))) {
+            New-Item -ItemType Directory "$($rke2Settings.clusterStorage)/$clusterName" | Out-Null
         }
-        Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" $($detail.userName)@$($detail.ipAddress):rke2.yaml ./rke2-servers/$clusterName/rke2.yaml"
-        Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" $($detail.userName)@$($detail.ipAddress):node-token ./rke2-servers/$clusterName/node-token"
+        Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" $($detail.userName)@$($detail.ipAddress):rke2.yaml `"$($rke2Settings.clusterStorage)/$clusterName/rke2.yaml`""
+        Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" $($detail.userName)@$($detail.ipAddress):node-token `"$($rke2Settings.clusterStorage)/$clusterName/node-token`""
         
-        $config = (Get-Content -Raw "./rke2-servers/$clusterName/rke2.yaml")
+        $config = (Get-Content -Raw "$($rke2Settings.clusterStorage)/$clusterName/rke2.yaml")
         $config = $config.Replace("https://127.0.0.1", "https://cp-$($clusterName).$($dnsDomain)")
-        Set-Content -Path "./rke2-servers/$clusterName/remote.yaml" -Value $config
+        Set-Content -Path "$($rke2Settings.clusterStorage)/$clusterName/remote.yaml" -Value $config
         
-        $existingClusterToken = (Get-Content -Raw "./rke2-servers/$clusterName/node-token")
+        $existingClusterToken = (Get-Content -Raw "$($rke2Settings.clusterStorage)/$clusterName/node-token")
     }
     return $detail;
 }
@@ -400,14 +403,15 @@ function Remove-NodeFromRke2Cluster {
         $clusterName,
         [bool]$useUnifi = $true
     )
-    if (-not (Test-Path "./rke2-servers/$clusterName/remote.yaml")) {
-        Write-Error "Could not find remote kube configuration: ./rke2-servers/$clusterName/remote.yaml"
+    $rke2Settings = Get-Rke2Settings
+    if (-not (Test-Path "$($rke2Settings.clusterStorage)/$clusterName/remote.yaml")) {
+        Write-Error "Could not find remote kube configuration: $($rke2Settings.clusterStorage)/$clusterName/remote.yaml"
         exit -1;    
     }
     
-    Invoke-Expression "kubectl --kubeconfig ./rke2-servers/$clusterName/remote.yaml drain --ignore-daemonsets --delete-emptydir-data $machineName" 
+    Invoke-Expression "kubectl --kubeconfig `"$($rke2Settings.clusterStorage)/$clusterName/remote.yaml`" drain --ignore-daemonsets --delete-emptydir-data $machineName" 
     Start-Sleep 30
-    Invoke-Expression "kubectl --kubeconfig ./rke2-servers/$clusterName/remote.yaml delete node/$($machineName)" 
+    Invoke-Expression "kubectl --kubeconfig `"$($rke2Settings.clusterStorage)/$clusterName/remote.yaml`" delete node/$($machineName)" 
     Remove-HyperVVm -machineName $machineName -useUnifi $useUnifi
 }
 
@@ -522,8 +526,8 @@ function Get-ClusterInfo {
     param(
         [string] $clusterName
     )
-
-    $currentNodes = Get-Vm "$clusterName-*"
+    $clusterVmPrefix = Get-ClusterVmPrefix($clusterName)
+    $currentNodes = Get-Vm "$clusterVmPrefix-*"
 
     $nodeStats = ($currentNodes | ForEach-Object { [int] ("0x{0}" -f $_.Name.Substring($_.Name.LastIndexOf("-") + 1)) } | Measure-Object -Max -Min)
     $currentNodeNames = $currentNodes | ForEach-Object { $_.Name }
@@ -544,7 +548,7 @@ Function Get-Rke2NodeMachineName {
     .DESCRIPTION
     Create a Machine Name for the node        
 
-    .PARAMETER clusterBase
+    .PARAMETER clusterName
     The name of the cluster to be created.  This will be used in naming templates for VMs and DNS Entries (if using Unifi)
 
     .PARAMETER nodeType
@@ -554,18 +558,79 @@ Function Get-Rke2NodeMachineName {
     The number of the node to be using as hex in the machine name.
 
     .EXAMPLE
-    PS> Get-Rke2NodeMachineName -clusterBase "test" -nodeType "server" 1
+    PS> Get-Rke2NodeMachineName -clusterName "test" -nodeType "server" 1
     #>
     param (
-        [string] $clusterBase,
+        [string] $clusterName,
         [ValidateSet("first-server", "server", "agent")]
         [string] $nodeType,
         [int] $nodeNumber
     )
-
+    
     $typeNotation = "srv";
     if ($nodeType -eq "agent") {
         $typeNotation = "agt"
     }
-    return [string]::Format("{0}-{1}-{2:x3}", $clusterBase, $typeNotation, $nodeNumber)
+    $vmPrefix = Get-ClusterVmPrefix($clusterName)
+    return [string]::Format("{0}-{1}-{2:x3}", $vmPrefix, $typeNotation, $nodeNumber)
+}
+
+function Get-ClusterVmPrefix {
+    param (
+        [string] $clusterName
+    )
+    $rke2Settings = Get-Rke2Settings
+    return "{0}-{1}" -f $rke2Settings.nodePrefix, $clusterName
+}
+
+Function Get-Rke2Settings {
+    <#
+    .SYNOPSIS
+    Get settings used for Rke2 Provisioning Module
+
+    .DESCRIPTION
+    Retrieve settings used for Rke2 Provisioning Module.  If set, these settings are stored in your environment variables.
+
+    .EXAMPLE
+    PS> Get-Rke2Settings
+    #>
+    param ()
+
+    $nodePrefix = $env:RKE2_PROVISION_NODE_PREFIX
+    if ([string]::IsNullOrWhiteSpace($nodePrefix)) {
+        $nodePrefix = [System.Environment]::GetEnvironmentVariable('RKE2_PROVISION_NODE_PREFIX', [System.EnvironmentVariableTarget]::User)
+    }
+    if ([string]::IsNullOrWhiteSpace($nodePrefix)) {
+        $nodePrefix = "rke"
+    }
+
+    $clusterStorage = $env:RKE2_PROVISION_CLUSTER_STORAGE
+    if ([string]::IsNullOrWhiteSpace($clusterStorage)) {
+        $clusterStorage = [System.Environment]::GetEnvironmentVariable('RKE2_PROVISION_CLUSTER_STORAGE', [System.EnvironmentVariableTarget]::User)
+    }
+    if ([string]::IsNullOrWhiteSpace($clusterStorage)){
+        $clusterStorage = Resolve-Path "./rke2-servers"
+    }
+    return @{
+        nodePrefix = "$nodePrefix"
+        clusterStorage = "$clusterStoragePath"
+    }
+}
+
+Function Set-Rke2Settings {
+    param (
+        $nodePrefix,
+        $clusterStorage
+    )
+
+    if (-not (Test-Path $clusterStorage)) {
+        Write-Error "Invalid Cluster Storage Path $clusterStorage"
+        return;
+    }
+
+    $env:RKE2_PROVISION_NODE_PREFIX = "$nodePrefix"
+    $env:RKE2_PROVISION_CLUSTER_STORAGE = "$clusterStorage"
+
+    [System.Environment]::SetEnvironmentVariable('RKE2_PROVISION_NODE_PREFIX', "$nodePrefix", [System.EnvironmentVariableTarget]::User)
+    [System.Environment]::SetEnvironmentVariable('RKE2_PROVISION_CLUSTER_STORAGE', "$clusterStorage", [System.EnvironmentVariableTarget]::User)
 }
