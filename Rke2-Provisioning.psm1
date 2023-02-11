@@ -209,7 +209,7 @@ function Deploy-NewRke2ClusterNodes{
     Import-Module powershell-yaml   
     $rke2Settings = Get-Rke2Settings
 
-    if (-not (Test-Path "$($rke2Settings.clusterStorage)$clusterName/node-token")) {
+    if (-not (Test-Path "$($rke2Settings.clusterStorage)/$clusterName/node-token")) {
         Write-Error "Could not find server token."
         return;    
     }
