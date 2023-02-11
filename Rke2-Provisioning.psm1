@@ -10,10 +10,16 @@ function New-Rke2Cluster {
         The name of the cluster to be created.  This will be used in naming templates for VMs and DNS Entries (if using Unifi)
 
         .PARAMETER dnsDomain
-        The DNS 
+        The DNS to be used for the cluster registration url
 
         .PARAMETER type
-        The type of node.  Current supported types are ubuntu-2204 and ubuntu-2004
+        The type of node.  Current supported types are ubuntu-2204
+
+        .PARAMETER serverNodeCount
+        The number of Control Plane nodes to create
+
+        .PARAMETER agentNodeCount
+        The number of agent nodes to create
 
         .PARAMETER OutputFolder
         The base folder where the VM information will be stored.
@@ -32,7 +38,7 @@ function New-Rke2Cluster {
         If true, the machine will be provisioned using the Unifi module to request VM Network information.
 
         .EXAMPLE
-        PS> .\Create-NewBuildAgent.ps1 -type ubuntu-2204 -OutputFolder "c:\my\virtualmachines"
+        PS> New-Rke2Cluster -type ubuntu-2204 -OutputFolder "c:\my\virtualmachines"
     #>
 
     param (
@@ -51,7 +57,6 @@ function New-Rke2Cluster {
         $OutputFolder="d:\\Hyper-V\\",
         $serverNodeCount=3,
         $agentNodeCount=0,
-        $nodeCountStart=1,
         [bool]$useUnifi = $true
     )
     
@@ -76,7 +81,9 @@ function New-Rke2Cluster {
     }
     
     $nodes = @()
-    
+    # This is a new cluster, always start at 1
+    $nodeCountStart = 1
+
     for ($i=$nodeCountStart; $i -lt $serverNodeCount + $nodeCountStart; $i++) {
 
         if ($i -eq $nodeCountStart) {
@@ -141,18 +148,27 @@ function New-Rke2Cluster {
 function Deploy-NewRke2ClusterNodes{
         <#
         .SYNOPSIS
-        Create a set of docker-enabled Ubuntu nodes for a Kubernetes cluster.
+        Cycle nodes in the current cluster based on age.
 
         .DESCRIPTION
         Create a set of docker-enabled Ubuntu nodes for a Kubernetes cluster.  This script will provision multiple machines, using the nodeCount
         and nodeStart parameters to determine machine name.
 
-        .PARAMETER baseName
+        .PARAMETER clusterName
         The base name of the VM nodes.  This name will be appended with a count, which is a six-digit hexidecimal representation of the
         VM.
 
+        .PARAMETER dnsDomain
+        The domain to be used for the server url.
+
         .PARAMETER type
-        The type of node.  Current supported types are ubuntu-2204 and ubuntu-2004
+        The type of node.  Current supported types are ubuntu-2204
+
+        .PARAMETER nodeSize
+        This parameter is used to locate a pkrvars.hcl file in ./templates/ubuntu/docker/ which corresponds to the nodeSize.  It uses the
+        following format: {nodeSize}-node.pkrvars.hcl.  If this file does not exist, the script will exit.  
+
+        Node Size files are not included in this repository:  they must be created based on ./templates/ubuntu/docker/docker.pkrvars.hcl.template.
 
         .PARAMETER OutputFolder
         The base folder where the VM information will be stored.
@@ -161,17 +177,12 @@ function Deploy-NewRke2ClusterNodes{
         The ErrorAction to use for the Packer Command.  Valid values are "cleanup", "abort", "ask", and "run-cleanup-provisioner".
         See https://developer.hashicorp.com/packer/docs/commands/build for information on the -on-error option details.
 
-        .PARAMETER nodeSize
-        This parameter is used to locate a pkrvars.hcl file in ./templates/ubuntu/docker/ which corresponds to the nodeSize.  It uses the
-        following format: {nodeSize}-node.pkrvars.hcl.  If this file does not exist, the script will exit.  
-
-        Node Size files are not included in this repository:  they must be created based on ./templates/ubuntu/docker/docker.pkrvars.hcl.template.
 
         .PARAMETER useUnifi
         If true, the machine will be provisioned using the Unifi module to request VM Network information.
 
         .EXAMPLE
-        PS> .\Create-NewBuildAgent.ps1 -type ubuntu-2204 -OutputFolder "c:\my\virtualmachines"
+        PS>  Deploy-NewRke2ClusterNodes -clusterName "test" -dnsDomain "domain.local" -type ubuntu-2204 -OutputFolder "c:\my\virtualmachines"
         #>
 
     param (
@@ -258,6 +269,43 @@ function Deploy-NewRke2ClusterNodes{
     $nodes | Format-Table
 }
 function Add-NodeToRke2Cluster {
+    <#
+    .SYNOPSIS
+    Create a new Rke2 Cluster node.
+
+    .DESCRIPTION
+    Based on the cluster name and node type, generate a machine name and provision a new node.  If useUnifi is true, DNS entries
+    will be made.
+
+    .PARAMETER clusterName
+    The name of the cluster where the node will be added
+
+    .PARAMETER dnsDomain
+    The dnsDomain of the cluster, used to build the cluster address
+
+    .PARAMETER vmType
+    The type of the vm.  Current valid value is ubuntu-2204
+
+    .PARAMETER vmSize
+    The size of the vm.  Corresponds to a variable file in ./templates/ubuntu/rke2/{vmSize}-worker.pkrvars.hcl 
+    or ./templates/ubuntu/rke2/{vmSize}-server.pkrvars.hcl
+
+    .PARAMETER nodeType
+    The type of node to create.  Valid values are "first-server" (the first server in a cluster), "server", or "agent"
+
+    .PARAMETER packerErrorAction
+    The ErrorAction to use for the Packer Command.  Valid values are "cleanup", "abort", "ask", and "run-cleanup-provisioner".
+    See https://developer.hashicorp.com/packer/docs/commands/build for information on the -on-error option details.
+
+    .PARAMETER OutputFolder
+    The base folder where the VM information will be stored.
+
+    .PARAMETER useUnifi
+    If true, use the Unifi.psm1 to manage DNS entries.
+
+    .EXAMPLE
+    PS> Add-NodeToRke2Cluster -clusterName "test" -dnsDomain "domain.local" -vmSize "med" -nodeType "agent"
+    #>
     param(
         $clusterName,
         $dnsDomain,
@@ -318,12 +366,48 @@ function Add-NodeToRke2Cluster {
 
 function New-Rke2ClusterNode
 {
+    <#
+    .SYNOPSIS
+    Create a new Rke2 Cluster node
+
+    .DESCRIPTION
+    Provision a new VM as a node in the given cluster.
+
+    .PARAMETER machineName
+    The machine name to create
+
+    .PARAMETER clusterName
+    The name of the cluster where the node will be added
+
+    .PARAMETER dnsDomain
+    The dnsDomain of the cluster, used to build the cluster address
+
+    .PARAMETER vmType
+    The type of the vm.  Current valid value is ubuntu-2204
+
+    .PARAMETER vmSize
+    The size of the vm.  Corresponds to a variable file in ./templates/ubuntu/rke2/{vmSize}-worker.pkrvars.hcl 
+    or ./templates/ubuntu/rke2/{vmSize}-server.pkrvars.hcl
+
+    .PARAMETER nodeType
+    The type of node to create.  Valid values are "first-server" (the first server in a cluster), "server", or "agent"
+
+    .PARAMETER packerErrorAction
+    The ErrorAction to use for the Packer Command.  Valid values are "cleanup", "abort", "ask", and "run-cleanup-provisioner".
+    See https://developer.hashicorp.com/packer/docs/commands/build for information on the -on-error option details.
+
+    .PARAMETER OutputFolder
+    The base folder where the VM information will be stored.
+
+    .EXAMPLE
+    PS> New-Rke2ClusterNode -machineName "test-srv-001" -clusterName "test" -dnsDomain "domain.local" -vmSize "med" -nodeType "agent"
+    #>
     param (
         $machineName,
         $clusterName,
         $dnsDomain,
         [ValidateSet("ubuntu-2204")]
-        $vmType,
+        $vmType = "ubuntu-2204",
         $vmSize,
         [ValidateSet("first-server", "server", "agent")]
         $nodeType,
@@ -418,22 +502,22 @@ function Remove-NodeFromRke2Cluster {
 function New-Rke2AgentConfig {
     <#
     .SYNOPSIS
-    Generate a new server-config.yaml file which will be used to configure a server node.
+    Generate a new agent-config.yaml file which will be used to configure an agent node.
 
     .DESCRIPTION
-    Using the cluster name, retrieve the matching VMs and associated information
+    Create a new agent-config.yaml file used for the install-agent.sh provisioning script
 
     .PARAMETER machineName
     Used to set the node-name for the RKE2 node
 
     .PARAMETER clusterName
-    Used with dnsDomain to set tls-san values
+    Used with dnsDomain to set the server url
 
     .PARAMETER dnsDomain
-    Used to build alternative tls-san values
+    Used to build alternative the server url
 
     .PARAMETER existingClusterToken
-    Secret token for previously created server
+    Secret token for previously created server.  If null or empty an error will be printed.
 
     .EXAMPLE
     PS> New-Rke2AgentConfig -machineName "test-srv-001" -clusterName "test" -dnsDomain "domain.local" -existingClusterToken "secretTokenValue"
@@ -465,7 +549,7 @@ function New-Rke2ServerConfig {
     Generate a new server-config.yaml file which will be used to configure a server node.
 
     .DESCRIPTION
-    Using the cluster name, retrieve the matching VMs and associated information
+    Generate a server-config.yaml file for use in the install-server.sh provisioning script
 
     .PARAMETER machineName
     Used to set the node-name for the RKE2 node
@@ -477,7 +561,7 @@ function New-Rke2ServerConfig {
     Used to build alternative tls-san values
 
     .PARAMETER existingClusterToken
-    Secret token for previously created server
+    Secret token for previously created server.  If null or empty, this will be treated as the first server in the cluster.
 
     .EXAMPLE
     PS> New-Rke2ServerConfig -machineName "test-srv-001" -clusterName "test" -dnsDomain "domain.local" -existingClusterToken "secretTokenValue"
