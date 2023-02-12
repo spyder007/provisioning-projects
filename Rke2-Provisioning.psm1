@@ -43,21 +43,21 @@ function New-Rke2Cluster {
 
     param (
         [Parameter(Mandatory=$true,Position=1)]
-        $clusterName,
+        [string] $clusterName,
         [Parameter(Mandatory=$true,Position=2)]
-        $dnsDomain,
+        [string] $dnsDomain,
         [Parameter()]
         [ValidateSet("ubuntu-2204")]
-        $type = "ubuntu-2204",
+        [string] $type = "ubuntu-2204",
         [ValidateSet("sm", "med")]
-        $nodeSize="med",
+        [string] $nodeSize="med",
         [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
-        $packerErrorAction = "cleanup",
+        [string] $packerErrorAction = "cleanup",
         [Parameter()]
-        $OutputFolder="d:\\Hyper-V\\",
-        $serverNodeCount=3,
-        $agentNodeCount=0,
-        [bool]$useUnifi = $true
+        [string] $OutputFolder="d:\\Hyper-V\\",
+        [int] $serverNodeCount=3,
+        [int] $agentNodeCount=0,
+        [bool] $useUnifi = $true
     )
     
     Import-Module ./HyperV-Provisioning.psm1
@@ -187,19 +187,19 @@ function Deploy-NewRke2ClusterNodes{
 
     param (
         [Parameter(Mandatory=$true,Position=1)]
-        $clusterName,
+        [string] $clusterName,
         [Parameter()]
-        $dnsDomain = "domain.local",
+        [string] $dnsDomain = "domain.local",
         [Parameter()]
         [ValidateSet("ubuntu-2204")]
-        $type = "ubuntu-2204",
+        [string] $type = "ubuntu-2204",
         [ValidateSet("sm", "med")]
-        $nodeSize="med",
+        [string] $nodeSize="med",
         [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
-        $packerErrorAction = "cleanup",
+        [string] $packerErrorAction = "cleanup",
         [Parameter()]
-        $OutputFolder="d:\\Hyper-V\\",
-        [bool]$useUnifi = $true
+        [string] $OutputFolder="d:\\Hyper-V\\",
+        [bool] $useUnifi = $true
     )
 
     Import-Module ./HyperV-Provisioning.psm1
@@ -214,60 +214,81 @@ function Deploy-NewRke2ClusterNodes{
         return;    
     }
 
-    if ($useUnifi) {
-        $clusterDns = Get-ClusterDns -clusterName $clusterName
-    }
-
     # Get all of the current VM Nodes for this cluster
     $clusterInfo = Get-ClusterInfo $clusterName
-    
-    # Start servers at max plus 1.
-    $newNodeStart = $clusterInfo.Stats.Maximum + 1
-    # If we are going to hit the max node count, cycle back to the beginning
-    if ($clusterInfo.Stats.Maximum + $clusterInfo.Stats.Count -ge [int]"0xfff") {
-        $newNodeStart = 1
-    }
+    $currentNames = $clusterInfo.VirtualMachineNames
 
     $nodes = @()
-    $currentNodeIndex = 0;
-    for ($i=$newNodeStart; $i -lt $clusterInfo.Stats.Count + $newNodeStart; $i++) {
-        $currentNodeName = $clusterInfo.VirtualMachineNames[$currentNodeIndex];
+    foreach ($currentNodeName in $currentNames) {
 
-        if ($currentNodeName.Contains("-agt-")) {
-            $nodeType = "agent"
+        $nodeDetail = Replace-ExistingRke2Node $currentNodeName $clusterName -dnsDomain $dnsDomain -type $type -nodeSize $nodeSize -packerErrorAction $packerErrorAction -OutputFolder $OutputFolder -useUnifi $useUnifi
+        if ($null -ne $nodeDetail) {
+            $nodes += $nodeDetail;
         }
-        else {
-            $nodeType = "server"
-        }
-        $machineName = Get-Rke2NodeMachineName $clusterName $nodeType $i
-
-        Write-Host "Building $machineName to replace $($currentNodeName)"
-        
-        $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction
-        
-        if (-not ($nodeDetail.success)) {
-            Write-Error "Unable to provision server"
-            return -1;
-        }
-        
-        if ($useUnifi) {
-            $oldNetInfo = Get-HyperVNetworkInfo -vmname $currentNodeName
-
-            # replace the current server IP with the new server IP in both the traffic and control plane
-            $clusterDns.traffic | ForEach-Object { if ($_.data -eq $oldNetInfo.IpV4Address) { $_.data = $nodeDetail.IpAddress } }
-            $clusterDns.controlPlane | ForEach-Object { if ($_.data -eq $oldNetInfo.IpV4Address) { $_.data = $nodeDetail.IpAddress } }
-
-            $clusterDns = Update-ClusterDns $clusterDns
-        }
-        
-        Remove-NodeFromRke2Cluster -machineName $currentNodeName -clusterName $clusterName -useUnifi $useUnifi
-        
-        $nodes += $nodeDetail;
-        $currentNodeIndex++;
     }
 
     $nodes | Format-Table
 }
+
+function Replace-ExistingRke2Node {
+    param (
+        [Parameter(Mandatory=$true,Position=1)]
+        [string] $currentNodeName,
+        [Parameter(Mandatory=$true,Position=2)]
+        [string] $clusterName,
+        [Parameter()]
+        [string] $dnsDomain = "domain.local",
+        [Parameter()]
+        [ValidateSet("ubuntu-2204")]
+        [string] $type = "ubuntu-2204",
+        [ValidateSet("sm", "med")]
+        [string] $nodeSize="med",
+        [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
+        [string] $packerErrorAction = "cleanup",
+        [Parameter()]
+        [string] $OutputFolder="d:\\Hyper-V\\",
+        [bool]$useUnifi = $true
+    )
+    if ($currentNodeName.Contains("-agt-")) {
+        $nodeType = "agent"
+    }
+    else {
+        $nodeType = "server"
+    }
+
+    $clusterInfo = Get-ClusterInfo $clusterName
+    $nextNodeCount = $clusterInfo.Stats.Maximum + 1
+    if ($nextNodeCount -gt [int]"0xfff") {
+        $nextNodeCount = 1
+    }
+
+    $machineName = Get-Rke2NodeMachineName $clusterName $nodeType $nextNodeCount
+
+    Write-Host "Building $machineName to replace $($currentNodeName)"
+    
+    $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction
+    
+    if (-not ($nodeDetail.success)) {
+        Write-Error "Unable to provision server"
+        return $null;
+    }
+    
+    if ($useUnifi) {
+        $clusterDns = Get-ClusterDns -clusterName $clusterName
+        $oldNetInfo = Get-HyperVNetworkInfo -vmname $currentNodeName
+
+        # replace the current server IP with the new server IP in both the traffic and control plane
+        $clusterDns.traffic | ForEach-Object { if ($_.data -eq $oldNetInfo.IpV4Address) { $_.data = $nodeDetail.IpAddress } }
+        $clusterDns.controlPlane | ForEach-Object { if ($_.data -eq $oldNetInfo.IpV4Address) { $_.data = $nodeDetail.IpAddress } }
+
+        $clusterDns = Update-ClusterDns $clusterDns
+    }
+    
+    Remove-NodeFromRke2Cluster -machineName $currentNodeName -clusterName $clusterName -useUnifi $useUnifi
+    
+    return $nodeDetail
+}
+
 function Add-NodeToRke2Cluster {
     <#
     .SYNOPSIS
