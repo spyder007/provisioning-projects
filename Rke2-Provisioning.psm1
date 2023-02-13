@@ -93,7 +93,7 @@ function New-Rke2Cluster {
             $nodeType = "server"
         }
         $machineName = Get-Rke2NodeMachineName $clusterName $nodeType $i
-        $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction
+        $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction -useUnifi $useUnifi
    
         if ($nodeDetail.success) {
             $nodes += $nodeDetail;
@@ -126,7 +126,7 @@ function New-Rke2Cluster {
         
         Write-Host "Building $machineName"
     
-        $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType "agent" -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction
+        $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType "agent" -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction  -useUnifi $useUnifi
 
         if ($nodeDetail.success) {
             $nodes += $nodeDetail;
@@ -266,7 +266,7 @@ function Replace-ExistingRke2Node {
 
     Write-Host "Building $machineName to replace $($currentNodeName)"
     
-    $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction
+    $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction -useUnifi $useUnifi
     
     if (-not ($nodeDetail.success)) {
         Write-Error "Unable to provision server"
@@ -362,7 +362,7 @@ function Add-NodeToRke2Cluster {
     
     $machineName = Get-Rke2NodeMachineName $clusterName $nodeType $nodeNumber
     
-    $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmType $vmType -vmSize $vmSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction
+    $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmType $vmType -vmSize $vmSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction -useUnifi $useUnifi
 
     if ($nodeDetail.success) {
         if ($useUnifi) {
@@ -435,7 +435,8 @@ function New-Rke2ClusterNode
         [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
         $packerErrorAction = "cleanup",
         [Parameter()]
-        $OutputFolder="d:\\Hyper-V\\"
+        $OutputFolder="d:\\Hyper-V\\",
+        [bool] $useUnifi=$true
     )
     $rke2Settings = Get-Rke2Settings
     if ($nodeType -ne "first-server") 
