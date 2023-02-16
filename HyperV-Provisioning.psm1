@@ -47,10 +47,6 @@ function Build-UbuntuBase {
         $machineName = "ubuntu-2204-base"
     )
 
-    if ($useUnifi) {
-        Import-Module ./Unifi.psm1
-    }
-
     $vars = @{}
     ## Grab the variables file
     if (($null -ne $VariableFile) -and (Test-Path $VariableFile)) {
@@ -198,19 +194,28 @@ function Build-Ubuntu {
     ## crypt the password (unix style) so that it can go into the autoinstall folder
     $cryptedPass = (Write-Output "$($vars["password"])" | openssl passwd -6 -salt "FFFDFSDFSDF" -stdin)
 
-    if (Test-Path "packerhttp") {
-        Remove-Item -Force -Recurse "packerhttp"
+    if (Test-Path $HostHttpFolder)
+    {
+        if (Test-Path "packerhttp") {
+            Remove-Item -Force -Recurse "packerhttp"
+        }
+
+        # Copy the contents
+        mkdir "packerhttp" | Out-Null
+        Copy-Item -Recurse "$HostHttpFolder\*" "packerhttp"
+
+        $user_data_content = Get-Content "packerhttp\user-data"
+        $user_data_content = $user_data_content -replace "{{username}}", "$($vars["username"])"
+        $user_data_content = $user_data_content -replace "{{crypted_password}}", "$cryptedPass"
+        $user_data_content = $user_data_content -replace "{{hostname}}", "$($machineName)"
+        $user_data_content | Set-Content "packerhttp\user-data"
+
+        $httpArgument = "-var `"http=packerhttp`""
     }
-
-    # Copy the contents
-    mkdir "packerhttp" | Out-Null
-    Copy-Item -Recurse "$HostHttpFolder\*" "packerhttp"
-
-    $user_data_content = Get-Content "packerhttp\user-data"
-    $user_data_content = $user_data_content -replace "{{username}}", "$($vars["username"])"
-    $user_data_content = $user_data_content -replace "{{crypted_password}}", "$cryptedPass"
-    $user_data_content = $user_data_content -replace "{{hostname}}", "$($machineName)"
-    $user_data_content | Set-Content "packerhttp\user-data"
+    else {
+        Write-Warning "Host HTTP Folder not found";
+        $httpArgument = ""
+    }
 
     $global:LASTEXITCODE = 0
     $macArgument = ""
@@ -219,7 +224,7 @@ function Build-Ubuntu {
     }
     $onError = "-on-error=$packerErrorAction"
 
-    Invoke-Expression "packer build $onError -var-file `"$VariableFile`" -var `"http=packerhttp`" -var `"output_dir=$OutputFolder`" $macArgument -var `"vm_name=$machineName`" `"$TemplateFile`"" | Out-Host
+    Invoke-Expression "packer build $onError -var-file `"$VariableFile`" $httpArgument -var `"output_dir=$OutputFolder`" $macArgument -var `"vm_name=$machineName`" `"$TemplateFile`"" | Out-Host
 
     $success = ($global:LASTEXITCODE -eq 0);
 

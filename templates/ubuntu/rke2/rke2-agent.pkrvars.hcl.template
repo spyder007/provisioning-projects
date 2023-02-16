@@ -7,4 +7,4 @@ memory = 2048
 output_dir = "./output"
 username = "ubuntu"
 password = "ubuntu"
-vm_name = "rke2-server"
+vm_name = "rke2-agent"

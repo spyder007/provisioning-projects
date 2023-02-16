@@ -4,9 +4,8 @@ variable "cpus" {
   default = "2"
 }
 
-variable "disk_size" {
-  type    = string
-  default = "21440"
+variable "baseVmName" {
+  type = string
 }
 
 variable "vmcx_path" {
@@ -60,7 +59,6 @@ variable "vm_name" {
 
 source "hyperv-vmcx" "ubuntu_vm" {
   cpus                  = "${var.cpus}"
-  disk_size             = "${var.disk_size}"
   clone_from_vmcx_path  = "${var.vmcx_path}"
   enable_mac_spoofing   = true
   enable_secure_boot    = false
@@ -80,15 +78,18 @@ build {
   sources = ["source.hyperv-vmcx.ubuntu_vm"]
 
   provisioner "shell" {
-    inline = ["mkdir ~/packertmp"]
+    inline = ["mkdir -p ~/packertmp; sudo dhclient -r; sudo dhclient; sudo shutdown now -r"]
+    expect_disconnect = true
   }
 
   provisioner "file" {
     destination = "~/packertmp"
+    pause_before        = "1m0s"
     sources     = "${var.files_dirs}"
   }
 
   provisioner "shell" {
+    environment_vars =  ["VM_NAME=${var.vm_name}", "BASE_NAME=${var.baseVmName}"]
     scripts = "${var.provisioning_scripts}"
   }
 
