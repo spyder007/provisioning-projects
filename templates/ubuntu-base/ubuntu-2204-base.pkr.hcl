@@ -107,4 +107,7 @@ build {
     scripts = "${var.provisioning_scripts}"
   }
 
+  provisioner "shell" {
+    inline = ["sudo dhclient -r"]
+  }
 }
