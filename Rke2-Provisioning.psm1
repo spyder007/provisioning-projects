@@ -70,13 +70,13 @@ function New-Rke2Cluster {
         return
     }
 
-    if (-not (Test-Path ".\templates\ubuntu\rke2\$nodeSize-server.pkrvars.hcl")) {
-        Write-Error "Server Variable file not found: .\templates\ubuntu\rke2\$nodeSize-server.pkrvars.hcl"
+    if (-not (Test-Path ".\templates\ubuntu-quick\rke2\$nodeSize-server.pkrvars.hcl")) {
+        Write-Error "Server Variable file not found: .\templates\ubuntu-quick\rke2\$nodeSize-server.pkrvars.hcl"
         return
     }
 
-    if (-not (Test-Path ".\templates\ubuntu\rke2\$nodeSize-agent.pkrvars.hcl")) {
-        Write-Error "Agent Variable file not found: .\templates\ubuntu\rke2\$nodeSize-agent.pkrvars.hcl"
+    if (-not (Test-Path ".\templates\ubuntu-quick\rke2\$nodeSize-agent.pkrvars.hcl")) {
+        Write-Error "Agent Variable file not found: .\templates\ubuntu-quick\rke2\$nodeSize-agent.pkrvars.hcl"
         return
     }
     
@@ -447,16 +447,16 @@ function New-Rke2ClusterNode
         }
         $existingClusterToken = (Get-Content -Raw "$($rke2Settings.clusterStorage)/$clusterName/node-token")
     }
-    $packerTemplate = ".\templates\ubuntu\$vmType.pkr.hcl"
-    $httpFolder = ".\templates\ubuntu\basic\http\"
+    $packerTemplate = ".\templates\ubuntu-quick\$vmType.pkr.hcl"
+    $httpFolder = ".\templates\ubuntu-quick\basic\http\"
     
     if ($nodeType -eq "server" -or $nodeType -eq "first-server") {
         New-Rke2ServerConfig -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -existingClusterToken $existingClusterToken
-        $packerVariables = ".\templates\ubuntu\rke2\$vmSize-server.pkrvars.hcl"
+        $packerVariables = ".\templates\ubuntu-quick\rke2\$vmSize-server.pkrvars.hcl"
     }
     else {
         New-Rke2AgentConfig -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -existingClusterToken $existingClusterToken
-        $packerVariables = ".\templates\ubuntu\rke2\$vmSize-agent.pkrvars.hcl"
+        $packerVariables = ".\templates\ubuntu-quick\rke2\$vmSize-agent.pkrvars.hcl"
     }  
 
     Write-Host "Building $machineName"
@@ -464,7 +464,7 @@ function New-Rke2ClusterNode
 
     if ($detail.Success -and $nodeType -eq "first-server") {
         Write-Host "Waiting 3 minutes to ensure the Server is up and running"
-        Start-Sleep -Seconds 180
+        Start-Sleep -Seconds 60
 
         if (Test-Path "c:\tmp") {
             Remove-Item -Recurse "c:\tmp"
@@ -557,12 +557,12 @@ function New-Rke2AgentConfig {
         $serverUrl = "cp-$($clusterName)"
     }
     
-    $agentConfig = convertfrom-yaml (get-content .\templates\ubuntu\rke2\configuration\agent-config.yaml -Raw)
+    $agentConfig = convertfrom-yaml (get-content .\templates\ubuntu-quick\rke2\configuration\agent-config.yaml -Raw)
     $agentConfig."node-name" = $machineName
     $agentConfig."server" = "https://$($serverUrl):9345"
     $agentConfig."token" = "$existingClusterToken"
 
-    (ConvertTo-Yaml $agentConfig) | Set-Content -Path .\templates\ubuntu\rke2\files\agent-config.yaml
+    (ConvertTo-Yaml $agentConfig) | Set-Content -Path .\templates\ubuntu-quick\rke2\files\agent-config.yaml
 }
 
 function New-Rke2ServerConfig {
@@ -601,7 +601,7 @@ function New-Rke2ServerConfig {
         $serverUrl = "cp-$($clusterName)"
     }
 
-    $serverConfig = convertfrom-yaml (get-content .\templates\ubuntu\rke2\configuration\server-config.yaml -Raw)
+    $serverConfig = convertfrom-yaml (get-content .\templates\ubuntu-quick\rke2\configuration\server-config.yaml -Raw)
     $serverConfig."node-name" = $machineName
     $serverConfig."tls-san" = @()
     $serverConfig."tls-san" += "cp-$clusterName"
@@ -612,7 +612,7 @@ function New-Rke2ServerConfig {
         $serverConfig."token" = $existingClusterToken;
         $serverConfig."server" = "https://$($serverUrl):9345"
     }
-    (ConvertTo-Yaml $serverConfig) | Set-Content -Path .\templates\ubuntu\rke2\files\server-config.yaml
+    (ConvertTo-Yaml $serverConfig) | Set-Content -Path .\templates\ubuntu-quick\rke2\files\server-config.yaml
 }
 
 function Get-ClusterInfo {

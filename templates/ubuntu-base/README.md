@@ -1,6 +1,6 @@
 # Provisioning Scripts - Hyper-V - Ubuntu Base
 
-This folder contains the files necessary for provisioning a basic Ubuntu headless server.
+This folder contains the files necessary for provisioning a base image suitable for quick provisioning additional images.
 
 ## Usage
 
@@ -28,7 +28,6 @@ See [the main readme]:[Home] for details on usage
 * nfs-common
 
 ## Notes
-This template assumes there is a file called `authorized_keys` in `/templates/ubuntu/basic/files` that contains your public SSH key.  The template configures SSH to require key authentication and disables password authentication.
 
 This image requires the builder to use [../basic/http](../basic/http) as the `http` folder.  See the script usage section on the [the main readme][Home] for details.
 

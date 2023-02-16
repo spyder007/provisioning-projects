@@ -1,4 +1,4 @@
-# Provisioning Scripts - Hyper-V - Ubuntu docker
+# Provisioning Scripts - Hyper-V - Ubuntu
 
 This folder contains the files necessary for provisioning an Ubuntu headless server with docker support
 
