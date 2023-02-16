@@ -78,13 +78,11 @@ build {
   sources = ["source.hyperv-vmcx.ubuntu_vm"]
 
   provisioner "shell" {
-    inline = ["mkdir -p ~/packertmp; sudo dhclient -r; sudo dhclient; sudo shutdown now -r"]
-    expect_disconnect = true
+    inline = ["mkdir -p ~/packertmp"]
   }
 
   provisioner "file" {
     destination = "~/packertmp"
-    pause_before        = "1m0s"
     sources     = "${var.files_dirs}"
   }
 
