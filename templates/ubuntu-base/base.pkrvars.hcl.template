@@ -1,0 +1,4 @@
+files_dirs = ["./templates/ubuntu-base/files/"]
+provisioning_scripts = ["./templates/ubuntu-base/base-prov.sh"]
+username = "ubuntu"
+password = "ubuntu"

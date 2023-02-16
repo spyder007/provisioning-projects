@@ -1,0 +1,9 @@
+
+cpus = 2
+files_dirs = ["./templates/ubuntu/basic/files/","./templates/ubuntu/rke2/files"]
+provisioning_scripts = ["./templates/ubuntu/basic/basic-prov.sh","./templates/ubuntu/rke2/scripts/install-server.sh"]
+memory = 2048
+output_dir = "./output"
+username = "ubuntu"
+password = "ubuntu"
+vm_name = "rke2-server"
