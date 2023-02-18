@@ -72,6 +72,7 @@ source "hyperv-vmcx" "ubuntu_vm" {
   ssh_username          = "${var.username}"
   switch_name           = "${var.switch}"
   vm_name               = "${var.vm_name}"
+  boot_wait             = "1m"
 }
 
 build {

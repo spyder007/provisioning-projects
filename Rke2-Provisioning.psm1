@@ -219,12 +219,30 @@ function Deploy-NewRke2ClusterNodes{
     $currentNames = $clusterInfo.VirtualMachineNames
 
     $nodes = @()
-    foreach ($currentNodeName in $currentNames) {
+    $serverCount = ($currentNames | Where-Object { $_ -like "*-srv-*"} | Measure-Object).Count
+    $agentCount = ($currentNames | Where-Object { $_ -like "*-agt-*"} | Measure-Object).Count
 
-        $nodeDetail = Replace-ExistingRke2Node $currentNodeName $clusterName -dnsDomain $dnsDomain -type $type -nodeSize $nodeSize -packerErrorAction $packerErrorAction -OutputFolder $OutputFolder -useUnifi $useUnifi
-        if ($null -ne $nodeDetail) {
-            $nodes += $nodeDetail;
+    for ($i = 0; $i -lt $serverCount; $i++) {
+        $newServer = Add-NodeToRke2Cluster -clusterName $clusterName -dnsDomain $dnsDomain -vmType $type -vmSize $nodeSize -nodeType "server" -packerErrorAction $packerErrorAction -OutputFolder $OutputFolder -useUnifi $useUnifi
+        if ($newServer.success) {
+            $nodes += $newServer
         }
+    }
+
+    for ($i = 0; $i -lt $agentCount; $i++) {
+        $newAgent = Add-NodeToRke2Cluster -clusterName $clusterName -dnsDomain $dnsDomain -vmType $type -vmSize $nodeSize -nodeType "agent" -packerErrorAction $packerErrorAction -OutputFolder $OutputFolder -useUnifi $useUnifi
+        if ($newAgent.success) {
+            $nodes += $newAgent
+        }
+    }
+
+    if ($nodes.Count -lt ($serverCount + $agentCount)) {
+        Write-Warning "Could not provision all new nodes.  Exiting."
+        return $nodes;
+    }
+
+    foreach ($currentNodeName in $currentNames) {
+        Remove-NodeFromRke2Cluster -machineName $currentNodeName -clusterName $clusterName -useUnifi $useUnifi
     }
 
     $nodes | Format-Table
@@ -272,18 +290,10 @@ function Replace-ExistingRke2Node {
         Write-Error "Unable to provision server"
         return $null;
     }
-    
-    if ($useUnifi) {
-        $clusterDns = Get-ClusterDns -clusterName $clusterName
-        $oldNetInfo = Get-HyperVNetworkInfo -vmname $currentNodeName
+       
+    Write-Host "Waiting 3 minutes to allow new nodes to become ready"
+    Start-Sleep -Seconds 180
 
-        # replace the current server IP with the new server IP in both the traffic and control plane
-        $clusterDns.traffic | ForEach-Object { if ($_.data -eq $oldNetInfo.IpV4Address) { $_.data = $nodeDetail.IpAddress } }
-        $clusterDns.controlPlane | ForEach-Object { if ($_.data -eq $oldNetInfo.IpV4Address) { $_.data = $nodeDetail.IpAddress } }
-
-        $clusterDns = Update-ClusterDns $clusterDns
-    }
-    
     Remove-NodeFromRke2Cluster -machineName $currentNodeName -clusterName $clusterName -useUnifi $useUnifi
     
     return $nodeDetail
@@ -383,6 +393,7 @@ function Add-NodeToRke2Cluster {
             $clusterDns = Update-ClusterDns $clusterDns
         }
     }
+    return $nodeDetail;
 }
 
 function New-Rke2ClusterNode
@@ -518,6 +529,18 @@ function Remove-NodeFromRke2Cluster {
     Invoke-Expression "kubectl --kubeconfig `"$($rke2Settings.clusterStorage)/$clusterName/remote.yaml`" drain --ignore-daemonsets --delete-emptydir-data $machineName" | Out-Host
     Start-Sleep 30
     Invoke-Expression "kubectl --kubeconfig `"$($rke2Settings.clusterStorage)/$clusterName/remote.yaml`" delete node/$($machineName)" | Out-Host
+
+    if ($useUnifi) {
+        $clusterDns = Get-ClusterDns -clusterName $clusterName
+        $oldNetInfo = Get-HyperVNetworkInfo -vmname $machineName
+
+        #remove the IP From the control plane
+        $clusterDns.controlPlane = $clusterDns.controlPlane | Where-Object { $_.data -ne $oldNetInfo.IPv4Address }
+        $clusterDns.traffic = $clusterDns.traffic | Where-Object { $_.data -ne $oldNetInfo.IPv4Address }
+
+        $clusterDns = Update-ClusterDns $clusterDns
+    }
+
     Remove-HyperVVm -machineName $machineName -useUnifi $useUnifi | Out-Host
 }
 

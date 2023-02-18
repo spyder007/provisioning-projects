@@ -3,6 +3,9 @@
 
 sudo sed -i "s#$BASE_NAME#$VM_NAME#g" /etc/hostname
 
+echo "Clear DNS Cache"
+sudo systemd-resolve --flush-caches
+
 echo "Regenerating ssh keys"
 sudo rm /etc/ssh/ssh_host_*
 sudo dpkg-reconfigure openssh-server
