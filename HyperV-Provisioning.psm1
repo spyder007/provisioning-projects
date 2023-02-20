@@ -256,6 +256,134 @@ function Build-Ubuntu {
 
 }
 
+function Build-Windows {
+    <#
+        .SYNOPSIS
+        Create an Windows hyper-v image using Packer
+
+        .DESCRIPTION
+        Create an Ubuntu hyper-v image using Packer.  This script does some specific work to translate passwords
+        that are specific to Ubuntu.
+
+        .PARAMETER TemplateFile
+        The location of the Packer template file (*.json or *.hcl)
+
+        .PARAMETER HostHttpFolder
+        The locatikon of the HostHTTP Folder.  This folder is mounted for the network installer to read.
+
+        .PARAMETER VariableFile
+        The location of the .pkvars file for this run
+
+        .PARAMETER OutputFolder
+        The base folder where the VM information will be stored.
+
+        .PARAMETER packerErrorAction
+        The ErrorAction to use for the Packer Command.  Valid values are "cleanup", "abort", "ask", and "run-cleanup-provisioner".
+        See https://developer.hashicorp.com/packer/docs/commands/build for information on the -on-error option details.
+
+        .PARAMETER machineName
+        The machine name to use for the final VM
+
+        .PARAMETER useUnifi
+        If true, the machine will be provisioned using the Unifi module to request VM Network information.
+
+        .EXAMPLE
+        PS> .\Build-Ubuntu.ps1 ".\templates\ubuntu\ubuntu-2004.json" .\templates\ubuntu\basic\http .\templates\ubuntu\basic\basic.pkvars -machinename ubuntuHost
+    #>
+
+    param (
+        [Parameter(Mandatory = $true, Position = 1)]
+        $TemplateFile,
+        [Parameter(Mandatory = $true, Position = 2)]
+        $VariableFile,
+        [Parameter(Position = 4)]
+        [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
+        $packerErrorAction = "cleanup",
+        [Parameter(Position = 5)]
+        $OutputFolder = "d:\\Virtual Machines\\",
+        [Parameter(Position = 6)]
+        [String]
+        $machineName = $null,
+        [bool]
+        $useUnifi = $true    
+    )
+
+    if ($useUnifi) {
+        Import-Module ./Unifi.psm1
+    }
+
+    $vars = @{}
+    ## Grab the variables file
+    if (($null -ne $VariableFile) -and (Test-Path $VariableFile)) {
+        $variableLines = Get-Content $VariableFile
+    
+        foreach ($varLine in $variableLines) {
+            if ($varLine -match "(?<var>[^=]*)=(?<value>.*)") {
+                $vars[$matches.var.Trim().ToLower()] = $matches.value.Trim().Trim("`"")
+            }
+        }
+    }
+    else {
+        Write-Error "Variable file is required";
+        return -1;
+    }
+    if ($null -eq $machineName) {
+        $machineName = $vars["vm_name"]
+    }
+
+    $macAddress = $null;
+    if ($useUnifi) {
+        $macAddress = Invoke-ProvisionUnifiClient -name "$($machineName)" -hostname "$($machineName)"
+        if ($null -eq $macAddress) {
+            Write-Host "Using random mac address"
+        }
+        else {
+            $macAddress | Format-Table | Out-Host
+            Write-Host "Mac Address = $($macAddress.RawMacAddress)"
+        }
+    }
+
+    $global:LASTEXITCODE = 0
+    $macArgument = ""
+    if ($null -ne $macAddress) {
+        $macArgument = "-var `"mac_address=$($macAddress.RawMacAddress)`""
+    }
+    $onError = "-on-error=$packerErrorAction"
+
+    Invoke-Expression "packer build $onError -var-file `"$VariableFile`" -var `"output_dir=$OutputFolder`" $macArgument -var `"vm_name=$machineName`" `"$TemplateFile`"" | Out-Host
+
+    $success = ($global:LASTEXITCODE -eq 0);
+
+    if ($success) {
+        $vmFolder = [IO.Path]::Combine($OutputFolder, $machineName)
+        $vmcx = Get-ChildItem -Path "$vmFolder" -Recurse -Filter "*.vmcx"
+
+        Import-VM -Path "$($vmcx.FullName)" | Out-Host
+        Start-VM "$($machineName)" | Out-Host
+        return @{
+            success          = $true
+            machineName      = "$machineName"
+            macAddress       = "$($macAddress.MacAddress)"
+            ipAddress        = "$($macAddress.IPAddress)"
+            userName         = "$($vars["username"])"
+        }
+    }
+    else {
+        if ($useUnifi) {
+            if ($null -ne $macAddress) {
+                Remove-UnifiClient -macAddress $macAddress.MacAddress
+            }
+        }
+        return @{
+            success          = $false
+        }
+    }
+
+
+}
+
+
+
 function Remove-HyperVVm {
     param (
         [Parameter(Mandatory = $true)]
