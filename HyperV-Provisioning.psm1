@@ -36,7 +36,7 @@ function Build-UbuntuBase {
         [Parameter(Position = 2)]
         $HostHttpFolder = ".\templates\ubuntu-base\http",
         [Parameter(Position = 3)]
-        $VariableFile = ".\templates\ubuntu-base\base.pkrvars.hcl",
+        $SecretVariableFile = ".\templates\ubuntu-base\base.pkrvars.hcl",
         [Parameter(Position = 4)]
         [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
         $packerErrorAction = "cleanup",
@@ -44,13 +44,15 @@ function Build-UbuntuBase {
         $OutputFolder = "d:\\Virtual Machines\\",
         [Parameter(Position = 6)]
         [String]
-        $machineName = "ubuntu-2204-base"
+        $machineName = "ubuntu-2204-base",
+        [string]
+        $ExtraVariableFile = ""
     )
 
     $vars = @{}
     ## Grab the variables file
-    if (($null -ne $VariableFile) -and (Test-Path $VariableFile)) {
-        $variableLines = Get-Content $VariableFile
+    if (($null -ne $SecretVariableFile) -and (Test-Path $SecretVariableFile)) {
+        $variableLines = Get-Content $SecretVariableFile
     
         foreach ($varLine in $variableLines) {
             if ($varLine -match "(?<var>[^=]*)=(?<value>.*)") {
@@ -86,7 +88,14 @@ function Build-UbuntuBase {
     $global:LASTEXITCODE = 0
     $onError = "-on-error=$packerErrorAction"
 
-    Invoke-Expression "packer build $onError -var-file `"$VariableFile`" -var `"http=packerhttp`" -var `"output_dir=$OutputFolder`" -var `"vm_name=$machineName`" `"$TemplateFile`"" | Out-Host
+    if ([string]::IsNullOrWhiteSpace($ExtraVariableFile)) {
+        $extraVarFileArgument = ""
+    }
+    else {
+        $extraVarFileArgument = "-var-file `"$ExtraVariableFile`""
+    }
+
+    Invoke-Expression "packer build $onError -var-file `"$SecretVariableFile`" $extraVarFileArgument -var `"http=packerhttp`" -var `"output_dir=$OutputFolder`" -var `"vm_name=$machineName`" `"$TemplateFile`"" | Out-Host
 
     $success = ($global:LASTEXITCODE -eq 0);
 
