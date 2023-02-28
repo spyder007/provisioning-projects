@@ -579,7 +579,7 @@ function New-Rke2ClusterNode
     }  
 
     Write-Host "Building $machineName"
-    $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -VariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi
+    $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -SecretVariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi
 
     if ($detail.Success -and $nodeType -eq "first-server") {
         Write-Host "Waiting 3 minutes to ensure the Server is up and running"

@@ -27,7 +27,7 @@ function Build-UbuntuBase {
         The machine name to use for the final VM
 
         .EXAMPLE
-        PS> .\Build-Ubuntu.ps1 ".\templates\ubuntu\ubuntu-2004.json" .\templates\ubuntu\basic\http .\templates\ubuntu\basic\basic.pkvars -machinename ubuntuHost
+        PS> Build-UbuntuBase ".\templates\ubuntu\ubuntu-2004.json" .\templates\ubuntu\basic\http .\templates\ubuntu\basic\basic.pkvars -machinename ubuntuHost
     #>
 
     param (
@@ -126,7 +126,7 @@ function Build-Ubuntu {
         .PARAMETER HostHttpFolder
         The locatikon of the HostHTTP Folder.  This folder is mounted for the network installer to read.
 
-        .PARAMETER VariableFile
+        .PARAMETER SecretVariableFile
         The location of the .pkvars file for this run
 
         .PARAMETER OutputFolder
@@ -152,7 +152,7 @@ function Build-Ubuntu {
         [Parameter(Mandatory = $true, Position = 2)]
         $HostHttpFolder,
         [Parameter(Mandatory = $true, Position = 3)]
-        $VariableFile,
+        $SecretVariableFile,
         [Parameter(Position = 4)]
         [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
         $packerErrorAction = "cleanup",
@@ -162,7 +162,9 @@ function Build-Ubuntu {
         [String]
         $machineName = $null,
         [bool]
-        $useUnifi = $true    
+        $useUnifi = $true,
+        [string]
+        $ExtraVariableFile = ""
     )
 
     if ($useUnifi) {
@@ -171,8 +173,8 @@ function Build-Ubuntu {
 
     $vars = @{}
     ## Grab the variables file
-    if (($null -ne $VariableFile) -and (Test-Path $VariableFile)) {
-        $variableLines = Get-Content $VariableFile
+    if (($null -ne $SecretVariableFile) -and (Test-Path $SecretVariableFile)) {
+        $variableLines = Get-Content $SecretVariableFile
     
         foreach ($varLine in $variableLines) {
             if ($varLine -match "(?<var>[^=]*)=(?<value>.*)") {
@@ -233,7 +235,14 @@ function Build-Ubuntu {
     }
     $onError = "-on-error=$packerErrorAction"
 
-    Invoke-Expression "packer build $onError -var-file `"$VariableFile`" $httpArgument -var `"output_dir=$OutputFolder`" $macArgument -var `"vm_name=$machineName`" `"$TemplateFile`"" | Out-Host
+    if ([string]::IsNullOrWhiteSpace($ExtraVariableFile)) {
+        $extraVarFileArgument = ""
+    }
+    else {
+        $extraVarFileArgument = "-var-file `"$ExtraVariableFile`""
+    }
+
+    Invoke-Expression "packer build $onError -var-file `"$SecretVariableFile`" $extraVarFileArgument $httpArgument -var `"output_dir=$OutputFolder`" $macArgument -var `"vm_name=$machineName`" `"$TemplateFile`"" | Out-Host
 
     $success = ($global:LASTEXITCODE -eq 0);
 
@@ -297,7 +306,7 @@ function Build-Windows {
         If true, the machine will be provisioned using the Unifi module to request VM Network information.
 
         .EXAMPLE
-        PS> .\Build-Ubuntu.ps1 ".\templates\ubuntu\ubuntu-2004.json" .\templates\ubuntu\basic\http .\templates\ubuntu\basic\basic.pkvars -machinename ubuntuHost
+        PS> .\Build-Windows.ps1 ".\templates\ubuntu\ubuntu-2004.json" .\templates\ubuntu\basic\http .\templates\ubuntu\basic\basic.pkvars -machinename ubuntuHost
     #>
 
     param (

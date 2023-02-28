@@ -65,7 +65,7 @@ $nodes = @()
 for ($i=$countStart; $i -lt $nodeCount + $countStart; $i++) {
     $machineName = "{0}-{1:x6}" -f $baseName, $i
     Write-Host "Building $machineName"
-    $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -VariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi
+    $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -SecretVariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi
 
     if ($detail.success) {
         $nodes += $detail;
