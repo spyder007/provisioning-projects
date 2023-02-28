@@ -579,7 +579,7 @@ function New-Rke2ClusterNode
     }  
 
     Write-Host "Building $machineName"
-    $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -SecretVariableFile "$packerVariables" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi
+    $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -SecretVariableFile "$($rke2Settings.secretsVariableFile)" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi -ExtraVariableFile "$packerVariables"
 
     if ($detail.Success -and $nodeType -eq "first-server") {
         Write-Host "Waiting 3 minutes to ensure the Server is up and running"
@@ -848,16 +848,28 @@ Function Get-Rke2Settings {
     if ([string]::IsNullOrWhiteSpace($clusterStorage)){
         $clusterStorage = Resolve-Path "./rke2-servers"
     }
+
+    $secretsVariableFile = $env:RKE2_PROVISION_SECRETS_FILE
+    if ([string]::IsNullOrWhiteSpace($secretsVariableFile)) {
+        $secretsVariableFile = [System.Environment]::GetEnvironmentVariable('RKE2_PROVISION_SECRETS_FILE', [System.EnvironmentVariableTarget]::User)
+    }
+    if ([string]::IsNullOrWhiteSpace($clusterStorage)){
+        $secretsVariableFile = Resolve-Path "./rke2-servers/secrets.pkrvars.hcl"
+    }
+
+
     return @{
         nodePrefix = "$nodePrefix"
         clusterStorage = "$clusterStorage"
+        secretsVariableFile = "$secretsVariableFile"
     }
 }
 
 Function Set-Rke2Settings {
     param (
         $nodePrefix,
-        $clusterStorage
+        $clusterStorage,
+        $secretsVariableFile
     )
 
     if (-not (Test-Path $clusterStorage)) {
@@ -865,9 +877,16 @@ Function Set-Rke2Settings {
         return;
     }
 
+    if (-not (Test-Path $secretsVariableFile)) {
+        Write-Error "Invalid Secrets Path $secretsVariableFile"
+        return;
+    }
+
     $env:RKE2_PROVISION_NODE_PREFIX = "$nodePrefix"
     $env:RKE2_PROVISION_CLUSTER_STORAGE = "$clusterStorage"
+    $env:RKE2_PROVISION_SECRETS_FILE = "$secretsVariableFile"
 
     [System.Environment]::SetEnvironmentVariable('RKE2_PROVISION_NODE_PREFIX', "$nodePrefix", [System.EnvironmentVariableTarget]::User)
     [System.Environment]::SetEnvironmentVariable('RKE2_PROVISION_CLUSTER_STORAGE', "$clusterStorage", [System.EnvironmentVariableTarget]::User)
+    [System.Environment]::SetEnvironmentVariable('RKE2_PROVISION_SECRETS_FILE', "$secretsVariableFile", [System.EnvironmentVariableTarget]::User)
 }
