@@ -248,6 +248,88 @@ function Deploy-NewRke2ClusterNodes{
     $nodes | Format-Table
 }
 
+function Cycle-Rke2ClusterNodes {
+    <#
+    .SYNOPSIS
+    Cycle nodes in the current cluster
+
+    .DESCRIPTION
+    Create a set of docker-enabled Ubuntu nodes for a Kubernetes cluster.  This script will provision multiple machines, using the nodeCount
+    and nodeStart parameters to determine machine name.
+
+    .PARAMETER clusterName
+    The base name of the VM nodes.  This name will be appended with a count, which is a six-digit hexidecimal representation of the
+    VM.
+
+    .PARAMETER dnsDomain
+    The domain to be used for the server url.
+
+    .PARAMETER type
+    The type of node.  Current supported types are ubuntu-2204
+
+    .PARAMETER nodeSize
+    This parameter is used to locate a pkrvars.hcl file in ./templates/ubuntu/docker/ which corresponds to the nodeSize.  It uses the
+    following format: {nodeSize}-node.pkrvars.hcl.  If this file does not exist, the script will exit.  
+
+    Node Size files are not included in this repository:  they must be created based on ./templates/ubuntu/docker/docker.pkrvars.hcl.template.
+
+    .PARAMETER OutputFolder
+    The base folder where the VM information will be stored.
+
+    .PARAMETER packerErrorAction
+    The ErrorAction to use for the Packer Command.  Valid values are "cleanup", "abort", "ask", and "run-cleanup-provisioner".
+    See https://developer.hashicorp.com/packer/docs/commands/build for information on the -on-error option details.
+
+
+    .PARAMETER useUnifi
+    If true, the machine will be provisioned using the Unifi module to request VM Network information.
+
+    .EXAMPLE
+    PS>  Deploy-NewRke2ClusterNodes -clusterName "test" -dnsDomain "domain.local" -type ubuntu-2204 -OutputFolder "c:\my\virtualmachines"
+    #>
+
+param (
+    [Parameter(Mandatory=$true,Position=1)]
+    [string] $clusterName,
+    [Parameter()]
+    [string] $dnsDomain = "domain.local",
+    [Parameter()]
+    [ValidateSet("ubuntu-2204")]
+    [string] $type = "ubuntu-2204",
+    [ValidateSet("sm", "med")]
+    [string] $nodeSize="med",
+    [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
+    [string] $packerErrorAction = "cleanup",
+    [Parameter()]
+    [string] $OutputFolder="d:\\Hyper-V\\",
+    [bool] $useUnifi = $true
+)
+
+    Import-Module ./HyperV-Provisioning.psm1
+    if ($useUnifi) {
+        Import-Module ./Unifi.psm1 -Force
+    }
+    Import-Module powershell-yaml   
+    $rke2Settings = Get-Rke2Settings
+
+    if (-not (Test-Path "$($rke2Settings.clusterStorage)/$clusterName/node-token")) {
+        Write-Error "Could not find server token."
+        return;    
+    }
+
+    # Get all of the current VM Nodes for this cluster
+    $clusterInfo = Get-ClusterInfo $clusterName
+    $currentNames = $clusterInfo.VirtualMachineNames
+
+    $nodes = @()
+
+    foreach ($currentNodeName in $currentNames) {
+        Replace-ExistingRke2Node -currentNodeName $currentNodeName -clusterName $clusterName -dnsDomain $dnsDomain -type $type -nodeSize $nodeSize -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction -useUnifi $useUnifi
+    }
+
+    $nodes | Format-Table
+}
+
 function Replace-ExistingRke2Node {
     param (
         [Parameter(Mandatory=$true,Position=1)]
@@ -280,23 +362,49 @@ function Replace-ExistingRke2Node {
         $nextNodeCount = 1
     }
 
-    $machineName = Get-Rke2NodeMachineName $clusterName $nodeType $nextNodeCount
-
-    Write-Host "Building $machineName to replace $($currentNodeName)"
+    $rke2Settings = Get-Rke2Settings
+    Write-Host "Replacing $($currentNodeName)"
     
-    $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction -useUnifi $useUnifi
+    $nodeDetail = Add-NodeToRke2Cluster -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction -useUnifi $useUnifi
     
     if (-not ($nodeDetail.success)) {
         Write-Error "Unable to provision server"
         return $null;
     }
-       
-    Write-Host "Waiting 3 minutes to allow new nodes to become ready"
-    Start-Sleep -Seconds 180
+    $machineName = $nodeDetail.machineName
 
-    Remove-NodeFromRke2Cluster -machineName $currentNodeName -clusterName $clusterName -useUnifi $useUnifi
+    $timeout = [DateTime]::UtcNow.AddMinutes(10);
+    $ready = $false;
+    Write-Host "Waiting until $timeout for node to become available."
+    while ((-not $ready) -or ([DateTime]::UtcNow -gt $timeout)) {
+        $nodeOutput = Invoke-Expression "kubectl --kubeconfig `"$($rke2Settings.clusterStorage)/$clusterName/remote.yaml`" get nodes -o json | ConvertFrom-Json"
+        $newNodeDetails = $nodeOutput.items | Where-Object { $_.metadata.annotations."rke2.io/hostname" -eq "$machineName" }
+        if ($null -ne $newNodeDetails) {
+            $newNodeStatus = $newNodeDetails.status.conditions | Where-Object {$_.type -eq "Ready"}
+            if ($null -ne $newNodeStatus) {
+                $ready = ($newNodeStatus.status -eq $true)
+            }
+            else {
+                Write-Warning "Unable to locate 'Ready' node condition";
+            }
+        }
+        else {
+            Write-Warning "Unable to locate node record for '$machineName'"
+        }
+        Start-Sleep -Seconds 30
+    }
+
+    if (-not $ready) {
+        Write-Error "New node never reached ready.  Leaving old node."
+        return $nodeDetail
+    }
+    else
+    {
+        Remove-NodeFromRke2Cluster -machineName $currentNodeName -clusterName $clusterName -useUnifi $useUnifi
+        return $nodeDetail
+    }
+
     
-    return $nodeDetail
 }
 
 function Add-NodeToRke2Cluster {
