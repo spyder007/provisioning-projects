@@ -1,9 +1,7 @@
 cpus = 2
-disk_size = 21440
+disk_size = 512000
 files_dirs = ["./templates/ubuntu/basic/files/"]
 provisioning_scripts = ["./templates/ubuntu/basic/basic-prov.sh"]
-memory = 2048
+memory = 8192
 output_dir = "./output"
-username = "ubuntu"
-password = "ubuntu"
-vm_name = "ubuntu_vm"
+vm_name = "ubuntu-mjg"

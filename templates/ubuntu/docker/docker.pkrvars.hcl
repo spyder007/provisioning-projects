@@ -5,6 +5,4 @@ files_dirs = ["./templates/ubuntu/basic/files/,./templates/ubuntu/docker/files/"
 provisioning_scripts = ["./templates/ubuntu/basic/basic-prov.sh,./templates/ubuntu/docker/docker-prov.sh"]
 memory = 2048
 output_dir = "./output"
-username = "ubuntu"
-password = "ubuntu"
 vm_name = "docker-base"
