@@ -578,8 +578,16 @@ function New-Rke2ClusterNode
         $packerVariables = ".\templates\ubuntu-quick\rke2\$vmSize-agent.pkrvars.hcl"
     }  
 
+    $extraPackerArguments = "";
+    if (-not [string]::IsNullOrWhiteSpace($rke2Settings.baseVmName)) {
+        $extraPackerArguments = "-var baseVmName=$($rke2Settings.baseVmName)"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($rke2Settings.baseVmcxPath)) {
+        $extraPackerArguments += " --var vmcx_path=`"$($rke2Settings.baseVmcxPath)`""
+    }
+
     Write-Host "Building $machineName"
-    $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -SecretVariableFile "$($rke2Settings.secretsVariableFile)" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi -ExtraVariableFile "$packerVariables"
+    $detail = Build-Ubuntu -TemplateFile "$packerTemplate" -HostHttpFolder "$httpFolder" -OutputFolder "$OutputFolder" -SecretVariableFile "$($rke2Settings.secretsVariableFile)" -packerErrorAction "$packerErrorAction" -machineName "$machineName" -useUnifi $useUnifi -ExtraVariableFile "$packerVariables" -ExtraPackerArguments "$extraPackerArguments"
 
     if ($detail.Success -and $nodeType -eq "first-server") {
         Write-Host "Waiting 3 minutes to ensure the Server is up and running"
@@ -853,8 +861,24 @@ Function Get-Rke2Settings {
     if ([string]::IsNullOrWhiteSpace($secretsVariableFile)) {
         $secretsVariableFile = [System.Environment]::GetEnvironmentVariable('RKE2_PROVISION_SECRETS_FILE', [System.EnvironmentVariableTarget]::User)
     }
-    if ([string]::IsNullOrWhiteSpace($clusterStorage)){
+    if ([string]::IsNullOrWhiteSpace($secretsVariableFile)){
         $secretsVariableFile = Resolve-Path "./rke2-servers/secrets.pkrvars.hcl"
+    }
+
+    $baseVmcxPath = $env:RKE2_PROVISION_BASE_VM_PATH
+    if ([string]::IsNullOrWhiteSpace($baseVmcxPath)) {
+        $baseVmcxPath = [System.Environment]::GetEnvironmentVariable('RKE2_PROVISION_BASE_VM_PATH', [System.EnvironmentVariableTarget]::User)
+    }
+    if ([string]::IsNullOrWhiteSpace($baseVmcxPath)){
+        $baseVmcxPath = Resolve-Path "D:\"
+    }
+
+    $baseVmName = $env:RKE2_PROVISION_BASE_VM_PATH
+    if ([string]::IsNullOrWhiteSpace($baseVmName)) {
+        $baseVmName = [System.Environment]::GetEnvironmentVariable('RKE2_PROVISION_BASE_VM_PATH', [System.EnvironmentVariableTarget]::User)
+    }
+    if ([string]::IsNullOrWhiteSpace($baseVmName)){
+        $baseVmName = "ubuntu-2204-base"
     }
 
 
@@ -862,6 +886,8 @@ Function Get-Rke2Settings {
         nodePrefix = "$nodePrefix"
         clusterStorage = "$clusterStorage"
         secretsVariableFile = "$secretsVariableFile"
+        baseVmcxPath = "$baseVmcxPath"
+        baseVmName = "$baseVmName"
     }
 }
 
@@ -869,7 +895,9 @@ Function Set-Rke2Settings {
     param (
         $nodePrefix,
         $clusterStorage,
-        $secretsVariableFile
+        $secretsVariableFile,
+        $baseVmcxPath,
+        $baseVmName
     )
 
     if (-not (Test-Path $clusterStorage)) {
@@ -885,8 +913,12 @@ Function Set-Rke2Settings {
     $env:RKE2_PROVISION_NODE_PREFIX = "$nodePrefix"
     $env:RKE2_PROVISION_CLUSTER_STORAGE = "$clusterStorage"
     $env:RKE2_PROVISION_SECRETS_FILE = "$secretsVariableFile"
+    $env:RKE2_PROVISION_BASE_VM_PATH = "$baseVmcxPath"
+    $env:RKE2_PROVISION_BASE_VM_NAME = "$baseVmName"
 
     [System.Environment]::SetEnvironmentVariable('RKE2_PROVISION_NODE_PREFIX', "$nodePrefix", [System.EnvironmentVariableTarget]::User)
     [System.Environment]::SetEnvironmentVariable('RKE2_PROVISION_CLUSTER_STORAGE', "$clusterStorage", [System.EnvironmentVariableTarget]::User)
     [System.Environment]::SetEnvironmentVariable('RKE2_PROVISION_SECRETS_FILE', "$secretsVariableFile", [System.EnvironmentVariableTarget]::User)
+    [System.Environment]::SetEnvironmentVariable('RKE2_PROVISION_BASE_VM_PATH', "$baseVmcxPath", [System.EnvironmentVariableTarget]::User)
+    [System.Environment]::SetEnvironmentVariable('RKE2_PROVISION_BASE_VM_NAME', "$baseVmName", [System.EnvironmentVariableTarget]::User)
 }

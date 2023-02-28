@@ -164,7 +164,9 @@ function Build-Ubuntu {
         [bool]
         $useUnifi = $true,
         [string]
-        $ExtraVariableFile = ""
+        $ExtraVariableFile = "",
+        [string]
+        $ExtraPackerArguments = ""
     )
 
     if ($useUnifi) {
@@ -242,7 +244,7 @@ function Build-Ubuntu {
         $extraVarFileArgument = "-var-file `"$ExtraVariableFile`""
     }
 
-    Invoke-Expression "packer build $onError -var-file `"$SecretVariableFile`" $extraVarFileArgument $httpArgument -var `"output_dir=$OutputFolder`" $macArgument -var `"vm_name=$machineName`" `"$TemplateFile`"" | Out-Host
+    Invoke-Expression "packer build $onError -var-file `"$SecretVariableFile`" $extraVarFileArgument $httpArgument -var `"output_dir=$OutputFolder`" $macArgument -var `"vm_name=$machineName`" $ExtraPackerArguments `"$TemplateFile`"" | Out-Host
 
     $success = ($global:LASTEXITCODE -eq 0);
 
