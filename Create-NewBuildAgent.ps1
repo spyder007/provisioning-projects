@@ -42,4 +42,4 @@ $agentDate=(Get-Date).ToString("yyMMdd")
 $machineName = "agt-ubt-$agentDate"
 
 ## Create and Provision agent
-Build-Ubuntu -TemplateFile ".\templates\buildagents\$($type).pkr.hcl" -HostHttpFolder ".\templates\buildagents\http\" -VariableFile ".\templates\buildagents\buildagent.pkrvars.hcl" -packerErrorAction "$packerErrorAction" -OutputFolder "$OutputFolder" -machineName $machineName -useUnifi $useUnifi
+Build-Ubuntu -TemplateFile ".\templates\buildagents\$($type).pkr.hcl" -HostHttpFolder ".\templates\buildagents\http\" -SecretVariableFile ".\templates\buildagents\buildagent.pkrvars.hcl" -packerErrorAction "$packerErrorAction" -OutputFolder "$OutputFolder" -machineName $machineName -useUnifi $useUnifi
