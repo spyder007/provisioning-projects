@@ -269,9 +269,9 @@ function Update-ClusterDns {
     $result = Invoke-RestMethod "$apiUrl/clusterdns/$($clusterDnsRecord.name)" -headers $headers -method Put -Body (ConvertTo-Json $clusterDnsRecord)
 
     if ($false -eq $result.Success) {
-        Write-Error "Error updating Cluster DNS Record: $($result.Errors | % { $_ })"
+        Write-Error "Error updating Cluster DNS Record: $($result.Errors | ForEach-Object { $_ })"
 
-        Write-Error "$($result.messages | % { $_ })"
+        Write-Error "$($result.messages | ForEach-Object { $_ })"
         return $false
     }
     return $result.data
