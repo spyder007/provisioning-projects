@@ -580,7 +580,7 @@ function New-Rke2ClusterNode
 
     $extraPackerArguments = "";
     if (-not [string]::IsNullOrWhiteSpace($rke2Settings.baseVmName)) {
-        $extraPackerArguments = "-var baseVmName=$($rke2Settings.baseVmName)"
+        $extraPackerArguments = "--var baseVmName=`"$($rke2Settings.baseVmName)`""
     }
     if (-not [string]::IsNullOrWhiteSpace($rke2Settings.baseVmcxPath)) {
         $extraPackerArguments += " --var vmcx_path=`"$($rke2Settings.baseVmcxPath)`""
