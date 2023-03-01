@@ -642,10 +642,9 @@ function Remove-NodeFromRke2Cluster {
         Write-Error "Could not find remote kube configuration: $($rke2Settings.clusterStorage)/$clusterName/remote.yaml"
         return;    
     }
-    
+
     Invoke-Expression "kubectl --kubeconfig `"$($rke2Settings.clusterStorage)/$clusterName/remote.yaml`" drain --ignore-daemonsets --delete-emptydir-data $machineName" | Out-Host
     Start-Sleep 30
-    Invoke-Expression "kubectl --kubeconfig `"$($rke2Settings.clusterStorage)/$clusterName/remote.yaml`" delete node/$($machineName)" | Out-Host
 
     if ($useUnifi) {
         $clusterDns = Get-ClusterDns -clusterName $clusterName
@@ -657,6 +656,8 @@ function Remove-NodeFromRke2Cluster {
 
         $clusterDns = Update-ClusterDns $clusterDns
     }
+
+    Invoke-Expression "kubectl --kubeconfig `"$($rke2Settings.clusterStorage)/$clusterName/remote.yaml`" delete node/$($machineName)" | Out-Host
 
     Remove-HyperVVm -machineName $machineName -useUnifi $useUnifi | Out-Host
 }
