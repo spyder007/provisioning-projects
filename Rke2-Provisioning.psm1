@@ -901,9 +901,9 @@ Function Get-Rke2Settings {
         $baseVmcxPath = Resolve-Path "D:\"
     }
 
-    $baseVmName = $env:RKE2_PROVISION_BASE_VM_PATH
+    $baseVmName = $env:RKE2_PROVISION_BASE_VM_NAME
     if ([string]::IsNullOrWhiteSpace($baseVmName)) {
-        $baseVmName = [System.Environment]::GetEnvironmentVariable('RKE2_PROVISION_BASE_VM_PATH', [System.EnvironmentVariableTarget]::User)
+        $baseVmName = [System.Environment]::GetEnvironmentVariable('RKE2_PROVISION_BASE_VM_NAME', [System.EnvironmentVariableTarget]::User)
     }
     if ([string]::IsNullOrWhiteSpace($baseVmName)){
         $baseVmName = "ubuntu-2204-base"
