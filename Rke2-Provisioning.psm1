@@ -302,7 +302,8 @@ param (
     [string] $packerErrorAction = "cleanup",
     [Parameter()]
     [string] $OutputFolder="d:\\Hyper-V\\",
-    [bool] $useUnifi = $true
+    [bool] $useUnifi = $true,
+    [int] $maxAgeDays = 14
 )
 
     Import-Module ./HyperV-Provisioning.psm1
@@ -318,12 +319,12 @@ param (
     }
 
     # Get all of the current VM Nodes for this cluster
-    $clusterInfo = Get-ClusterInfo $clusterName
-    $currentNames = $clusterInfo.VirtualMachineNames
+    Write-Host "Replacing nodes older than $maxAgeDays days"
+    $nodesToReplace = Get-Rke2AgedNodes -clusterName $clusterName -maxAgeDays $maxAgeDays
 
     $nodes = @()
 
-    foreach ($currentNodeName in $currentNames) {
+    foreach ($currentNodeName in $nodesToReplace) {
         Replace-ExistingRke2Node -currentNodeName $currentNodeName -clusterName $clusterName -dnsDomain $dnsDomain -type $type -nodeSize $nodeSize -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction -useUnifi $useUnifi
     }
 
@@ -783,6 +784,32 @@ function Get-ClusterInfo {
         Stats = $nodeStats
         VirtualMachineNames = $currentNodeNames
     }
+}
+
+function Get-Rke2AgedNodes {
+    <#
+    .SYNOPSIS
+    Get information on the VMs for the given cluster
+
+    .DESCRIPTION
+    Using the cluster name, retrieve the matching VMs and associated information
+
+    .PARAMETER clusterName
+    The name of the cluster, used to search VMs
+
+    .EXAMPLE
+    PS> Get-ClusterInfo -clusterName "test" -nodeType "server" 1
+    #>
+    param(
+        [string] $clusterName,
+        [int] $maxAgeDays = 25
+    )
+
+    $rke2Settings = Get-Rke2Settings
+    $cutoffDate = [DateTime]::UtcNow.AddDays($maxAgeDays * -1)
+    $nodeOutput = Invoke-Expression "kubectl --kubeconfig `"$($rke2Settings.clusterStorage)/$clusterName/remote.yaml`" get nodes -o json | ConvertFrom-Json"
+    $oldNodes = $nodeOutput.Items | Where-Object { $_.metadata.creationTimeStamp -lt $cutoffDate }
+    return ($oldNodes | Foreach-Object { $_.metadata.name })
 }
 
 Function Get-Rke2NodeMachineName {
