@@ -1,0 +1,18 @@
+server:
+  log_level: warn
+
+metrics:
+  global:
+    scrape_interval: 1m
+    remote_write:
+      - url: https://mimir.mattgerega.net/api/v1/push
+  wal_directory: '/var/lib/grafana-agent'
+
+integrations:
+  agent:
+    enabled: true
+  node_exporter:
+    enabled: true
+    include_exporter_metrics: true
+    disable_collectors:
+      - "mdadm"
