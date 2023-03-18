@@ -644,7 +644,9 @@ function Remove-NodeFromRke2Cluster {
     }
 
     Invoke-Expression "kubectl --kubeconfig `"$($rke2Settings.clusterStorage)/$clusterName/remote.yaml`" drain --ignore-daemonsets --delete-emptydir-data $machineName" | Out-Host
-    Start-Sleep 30
+    
+    Write-Host "Wait 5 minutes before removing to ensure all services have come up."
+    Start-Sleep 600
 
     if ($useUnifi) {
         $clusterDns = Get-ClusterDns -clusterName $clusterName
