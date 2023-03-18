@@ -7,7 +7,7 @@ echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stab
 sudo apt-get update
 sudo apt-get install grafana-agent
 
-sudo cp /imagegeneration/grafana-agent.yaml /etc/grafana-agent-yaml -f
+sudo cp /imagegeneration/grafana-agent.yaml /etc/grafana-agent.yaml -f
 
 sudo systemctl enable grafana-agent.service
 sudo systemctl start grafana-agent
