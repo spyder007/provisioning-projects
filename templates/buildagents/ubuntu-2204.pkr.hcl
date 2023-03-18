@@ -400,6 +400,9 @@ build {
     environment_vars = ["MS_AGENT_URL=${var.ms_agent_url}", "MS_AGENT_FILENAME=${var.ms_agent_filename}", "MS_AGENT_PAT=${var.ms_agent_pat}", "MS_AGENT_ORG_URL=${var.ms_agent_org_url}", "MS_AGENT_POOL_NAME=${var.ms_agent_pool}"]
     scripts          = ["${path.root}/scripts/configure-buildagent.sh"]
   }
+  provisioner "shell" {
+    scripts          = ["${path.root}/scripts/configure-grafana-agent.sh"]
+  }
 
   provisioner "shell" {
     inline = ["sudo usermod -aG docker $USER", "sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config"]
