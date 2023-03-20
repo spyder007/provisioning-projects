@@ -325,10 +325,13 @@ param (
     $nodes = @()
 
     foreach ($currentNodeName in $nodesToReplace) {
-        Replace-ExistingRke2Node -currentNodeName $currentNodeName -clusterName $clusterName -dnsDomain $dnsDomain -type $type -nodeSize $nodeSize -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction -useUnifi $useUnifi
+        $node = Replace-ExistingRke2Node -currentNodeName $currentNodeName -clusterName $clusterName -dnsDomain $dnsDomain -type $type -nodeSize $nodeSize -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction -useUnifi $useUnifi
+        if ($null -ne $node) {
+            $nodes += $node
+        }
     }
 
-    $nodes | Format-Table
+    return $nodes;
 }
 
 function Replace-ExistingRke2Node {
