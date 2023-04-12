@@ -814,7 +814,7 @@ function Get-Rke2AgedNodes {
     $rke2Settings = Get-Rke2Settings
     $cutoffDate = [DateTime]::UtcNow.AddDays($maxAgeDays * -1)
     $nodeOutput = Invoke-Expression "kubectl --kubeconfig `"$($rke2Settings.clusterStorage)/$clusterName/remote.yaml`" get nodes -o json | ConvertFrom-Json"
-    $oldNodes = $nodeOutput.Items | Where-Object { $_.metadata.creationTimeStamp -lt $cutoffDate }
+    $oldNodes = $nodeOutput.Items | Where-Object { [DateTime]::Parse($_.metadata.creationTimeStamp) -lt $cutoffDate }
     return ($oldNodes | Foreach-Object { $_.metadata.name })
 }
 
