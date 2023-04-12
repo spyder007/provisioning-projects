@@ -248,7 +248,7 @@ function Deploy-NewRke2ClusterNodes{
     $nodes | Format-Table
 }
 
-function Cycle-Rke2ClusterNodes {
+function Deploy-UpdatedRke2ClusterNodes {
     <#
     .SYNOPSIS
     Cycle nodes in the current cluster
@@ -325,7 +325,7 @@ param (
     $nodes = @()
 
     foreach ($currentNodeName in $nodesToReplace) {
-        $node = Replace-ExistingRke2Node -currentNodeName $currentNodeName -clusterName $clusterName -dnsDomain $dnsDomain -type $type -nodeSize $nodeSize -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction -useUnifi $useUnifi
+        $node = Deploy-ReplacementRke2Node -currentNodeName $currentNodeName -clusterName $clusterName -dnsDomain $dnsDomain -type $type -nodeSize $nodeSize -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction -useUnifi $useUnifi
         if ($null -ne $node) {
             $nodes += $node
         }
@@ -334,7 +334,7 @@ param (
     return $nodes;
 }
 
-function Replace-ExistingRke2Node {
+function Deploy-ReplacementRke2Node {
     param (
         [Parameter(Mandatory=$true,Position=1)]
         [string] $currentNodeName,
