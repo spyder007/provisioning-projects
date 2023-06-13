@@ -81,7 +81,7 @@ variable "memory" {
 
 variable "ms_agent_filename" {
   type    = string
-  default = "vsts-agent-linux-x64-3.217.1.tar.gz"
+  default = "vsts-agent-linux-x64-3.220.5.tar.gz"
 }
 
 variable "ms_agent_org_url" {
@@ -101,7 +101,7 @@ variable "ms_agent_pat" {
 }
 variable "ms_agent_url" {
   type    = string
-  default = "https://vstsagentpackage.azureedge.net/agent/3.217.1"
+  default = "hhttps://vstsagentpackage.azureedge.net/agent/3.220.5"
 }
 
 variable "output_dir" {
