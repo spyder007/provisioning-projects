@@ -201,6 +201,12 @@ build {
     scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/base/repos.sh"]
   }
 
+    provisioner "shell" {
+    environment_vars = ["DEBIAN_FRONTEND=noninteractive"]
+    execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
+    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/base/apt-ubuntu-archive.sh"]
+  }
+  
   provisioner "shell" {
     environment_vars = ["DEBIAN_FRONTEND=noninteractive"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
@@ -260,6 +266,12 @@ build {
   }
 
   provisioner "shell" {
+    environment_vars = ["DEBIAN_FRONTEND=noninteractive", "HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}"]
+    execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
+    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/apt-vital.sh"]
+  }
+
+  provisioner "shell" {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
     scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/complete-snap-setup.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/powershellcore.sh"]
@@ -283,10 +295,10 @@ build {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DEBIAN_FRONTEND=noninteractive"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
     scripts          = [
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/azcopy.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/apt-common.sh",
+			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/azcopy.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/azure-cli.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/azure-devops-cli.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/basic.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/bicep.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/aliyun-cli.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/apache.sh",
@@ -339,7 +351,6 @@ build {
 			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/android.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/pypy.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/python.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/graalvm.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/zstd.sh"
                         ]
   }
