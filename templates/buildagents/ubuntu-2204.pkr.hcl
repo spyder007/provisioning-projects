@@ -101,7 +101,7 @@ variable "ms_agent_pat" {
 }
 variable "ms_agent_url" {
   type    = string
-  default = "hhttps://vstsagentpackage.azureedge.net/agent/3.220.5"
+  default = "https://vstsagentpackage.azureedge.net/agent/3.220.5"
 }
 
 variable "output_dir" {
