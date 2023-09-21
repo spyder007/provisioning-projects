@@ -316,7 +316,7 @@ build {
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/git.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/github-cli.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/google-chrome.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/google-cloud-sdk.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/google-cloud-cli.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/haskell.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/heroku.sh",
 			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/java-tools.sh",
