@@ -369,7 +369,15 @@ function Deploy-ReplacementRke2Node {
     $rke2Settings = Get-Rke2Settings
     Write-Host "Replacing $($currentNodeName)"
     
-    $nodeDetail = Add-NodeToRke2Cluster -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction -useUnifi $useUnifi
+    $oldVm = Get-Vm $currentNodeName
+    if ($null -ne $oldVm) {
+        $notes = $oldVm.Notes
+    }
+    else {
+        $notes = ""
+    }
+
+    $nodeDetail = Add-NodeToRke2Cluster -clusterName $clusterName -dnsDomain $dnsDomain -vmtype $type -vmsize $nodeSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction -useUnifi $useUnifi -vmNotes $notes
     
     if (-not ($nodeDetail.success)) {
         Write-Error "Unable to provision server"
@@ -461,7 +469,8 @@ function Add-NodeToRke2Cluster {
         $packerErrorAction = "cleanup",
         [Parameter()]
         $OutputFolder="d:\\Hyper-V\\",
-        [bool] $useUnifi = $true
+        [bool] $useUnifi = $true,
+        [string] $vmNotes = ""
     )
     Import-Module ./HyperV-Provisioning.psm1
     
@@ -503,6 +512,9 @@ function Add-NodeToRke2Cluster {
                 data = "$($nodeDetail.ipAddress)"
             }
             $clusterDns = Update-ClusterDns $clusterDns
+        }
+        if ([String]::IsNullOrWhiteSpace($vmNotes) -eq $false) {
+            Set-VM -VMName $machineName -Notes $vmNotes | Out-Null
         }
     }
     return $nodeDetail;
