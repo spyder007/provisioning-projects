@@ -295,7 +295,8 @@ build {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DEBIAN_FRONTEND=noninteractive"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
     scripts          = [
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/apt-common.sh",
+                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/action-archive-cache.sh",
+			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/apt-common.sh",
 			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/azcopy.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/azure-cli.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/azure-devops-cli.sh",
@@ -353,6 +354,12 @@ build {
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/python.sh",
                         "${path.root}/lib/virtual-environments/images/linux/scripts/installers/zstd.sh"
                         ]
+  }
+
+  provisioner "shell" {
+    environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DOCKERHUB_LOGIN=${var.dockerhub_login}", "DOCKERHUB_PASSWORD=${var.dockerhub_password}"]
+    execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
+    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/docker-compose.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/docker.sh"]
   }
 
   provisioner "shell" {
