@@ -230,7 +230,7 @@ build {
 
   provisioner "file" {
     destination = "${var.image_folder}/docs-gen/"
-    source      = "${path.root}/lib/virtual-environments/helpers/software-report-base
+    source      = "${path.root}/lib/virtual-environments/helpers/software-report-base"
   }
 
   provisioner "file" {
