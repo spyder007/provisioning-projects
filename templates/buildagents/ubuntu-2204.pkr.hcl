@@ -192,71 +192,64 @@ build {
 
   provisioner "shell" {
     execute_command = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    script          = "${path.root}/lib/virtual-environments/images/linux/scripts/base/apt-mock.sh"
-  }
-
-  provisioner "shell" {
-    environment_vars = ["DEBIAN_FRONTEND=noninteractive"]
-    execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/base/repos.sh"]
+    script          = "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/apt-mock.sh"
   }
 
     provisioner "shell" {
     environment_vars = ["DEBIAN_FRONTEND=noninteractive"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/base/apt-ubuntu-archive.sh"]
+    scripts          = [
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/repos.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/apt-ubuntu-archive.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/apt.sh"]
   }
   
   provisioner "shell" {
-    environment_vars = ["DEBIAN_FRONTEND=noninteractive"]
-    execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    script           = "${path.root}/lib/virtual-environments/images/linux/scripts/base/apt.sh"
-  }
-
-  provisioner "shell" {
     execute_command = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    script          = "${path.root}/lib/virtual-environments/images/linux/scripts/base/limits.sh"
+    script          = "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/limits.sh"
   }
 
   provisioner "file" {
     destination = "${var.helper_script_folder}"
-    source      = "${path.root}/lib/virtual-environments/images/linux/scripts/helpers"
+    source      = "${path.root}/lib/virtual-environments/images/ubuntu/scripts/helpers"
   }
 
   provisioner "file" {
     destination = "${var.installer_script_folder}"
-    source      = "${path.root}/lib/virtual-environments/images/linux/scripts/installers"
+    source      = "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build"
   }
 
   provisioner "file" {
     destination = "${var.image_folder}"
-    source      = "${path.root}/lib/virtual-environments/images/linux/post-generation"
+    sources     = [
+      "${path.root}/lib/virtual-environments/images/ubuntu/assets/post-gen",
+      "${path.root}/lib/virtual-environments/images/ubuntu/scripts/tests",
+      "${path.root}/lib/virtual-environments/images/ubuntu/scripts/docs-gen"
+    ]
   }
 
   provisioner "file" {
-    destination = "${var.image_folder}"
-    source      = "${path.root}/lib/virtual-environments/images/linux/scripts/tests"
-  }
-
-  provisioner "file" {
-    destination = "${var.image_folder}"
-    source      = "${path.root}/lib/virtual-environments/images/linux/scripts/SoftwareReport"
-  }
-  
-  provisioner "file" {
-    destination = "${var.image_folder}/SoftwareReport/"
-    source      = "${path.root}/lib/virtual-environments/helpers/software-report-base"
+    destination = "${var.image_folder}/docs-gen/"
+    source      = "${path.root}/lib/virtual-environments/helpers/software-report-base
   }
 
   provisioner "file" {
     destination = "${var.installer_script_folder}/toolset.json"
-    source      = "${path.root}/lib/virtual-environments/images/linux/toolsets/toolset-2204.json"
+    source      = "${path.root}/lib/virtual-environments/images/ubuntu/toolsets/toolset-2204.json"
+  }
+
+  provisioner "shell" {
+    execute_command = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
+    inline          = [
+      "mv ${var.image_folder}/docs-gen ${var.image_folder}/SoftwareReport",
+      "mv ${var.image_folder}/post-gen ${var.image_folder}/post-generation"
+    ]
   }
 
   provisioner "shell" {
     environment_vars = ["IMAGE_VERSION=${var.image_version}", "IMAGEDATA_FILE=${var.imagedata_file}"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/preimagedata.sh"]
+    scripts          = ["${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/preimagedata.sh"]
   }
 
   provisioner "shell" {
@@ -268,13 +261,13 @@ build {
   provisioner "shell" {
     environment_vars = ["DEBIAN_FRONTEND=noninteractive", "HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/apt-vital.sh"]
+    scripts          = ["${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/apt-vital.sh"]
   }
 
   provisioner "shell" {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/complete-snap-setup.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/powershellcore.sh"]
+    scripts          = ["${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/complete-snap-setup.sh", "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/powershellcore.sh"]
   }
 
 
@@ -282,125 +275,121 @@ build {
   provisioner "shell" {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}"]
     execute_command  = "sudo sh -c '{{ .Vars }} pwsh -f {{ .Path }}'"
-    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/Install-PowerShellModules.ps1", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/Install-AzureModules.ps1"]
-  }
-
-  provisioner "shell" {
-    environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DOCKERHUB_LOGIN=${var.dockerhub_login}", "DOCKERHUB_PASSWORD=${var.dockerhub_password}"]
-    execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/docker-compose.sh"]
+    scripts          = ["${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/Install-PowerShellModules.ps1", "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/Install-AzureModules.ps1"]
   }
 
   provisioner "shell" {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DEBIAN_FRONTEND=noninteractive"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
     scripts          = [
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/action-archive-cache.sh",
-			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/apt-common.sh",
-			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/azcopy.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/azure-cli.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/azure-devops-cli.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/bicep.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/aliyun-cli.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/apache.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/aws.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/clang.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/swift.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/cmake.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/codeql-bundle.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/containers.sh",
-			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/dotnetcore-sdk.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/firefox.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/microsoft-edge.sh",
-			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/gcc.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/gfortran.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/git.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/github-cli.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/google-chrome.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/google-cloud-cli.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/haskell.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/heroku.sh",
-			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/java-tools.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/kubernetes-tools.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/oc.sh",
-			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/leiningen.sh",
-			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/miniconda.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/mono.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/kotlin.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/mysql.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/mssql-cmd-tools.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/sqlpackage.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/nginx.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/nvm.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/nodejs.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/bazel.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/oras-cli.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/php.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/postgresql.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/pulumi.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/ruby.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/r.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/rust.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/julia.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/sbt.sh",
-			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/selenium.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/terraform.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/packer.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/vcpkg.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/dpkg-config.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/yq.sh",
-			"${path.root}/lib/virtual-environments/images/linux/scripts/installers/android.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/pypy.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/python.sh",
-                        "${path.root}/lib/virtual-environments/images/linux/scripts/installers/zstd.sh"
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/action-archive-cache.sh",
+			                  "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/runner-package.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/apt-common.sh",
+			                  "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/azcopy.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/azure-cli.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/azure-devops-cli.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/bicep.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/aliyun-cli.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/apache.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/aws.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/clang.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/swift.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/cmake.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/codeql-bundle.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/containers.sh",
+			"${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/dotnetcore-sdk.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/firefox.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/microsoft-edge.sh",
+			"${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/gcc.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/gfortran.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/git.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/git-lfs.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/github-cli.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/google-chrome.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/google-cloud-cli.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/haskell.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/heroku.sh",
+			"${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/java-tools.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/kubernetes-tools.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/oc.sh",
+			"${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/leiningen.sh",
+			"${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/miniconda.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/mono.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/kotlin.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/mysql.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/mssql-cmd-tools.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/sqlpackage.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/nginx.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/nvm.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/nodejs.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/bazel.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/oras-cli.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/php.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/postgresql.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/pulumi.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/ruby.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/r.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/rust.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/julia.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/sbt.sh",
+			"${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/selenium.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/terraform.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/packer.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/vcpkg.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/dpkg-config.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/yq.sh",
+			"${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/android.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/pypy.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/python.sh",
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/zstd.sh"
                         ]
   }
 
   provisioner "shell" {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DOCKERHUB_LOGIN=${var.dockerhub_login}", "DOCKERHUB_PASSWORD=${var.dockerhub_password}"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/docker-compose.sh", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/docker.sh"]
+    scripts          = ["${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/docker-compose.sh", "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/docker.sh"]
   }
 
   provisioner "shell" {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}"]
     execute_command  = "sudo sh -c '{{ .Vars }} pwsh -f {{ .Path }}'"
-    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/Install-Toolset.ps1", "${path.root}/lib/virtual-environments/images/linux/scripts/installers/Configure-Toolset.ps1"]
+    scripts          = ["${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/Install-Toolset.ps1", "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/Configure-Toolset.ps1"]
   }
 
   provisioner "shell" {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/pipx-packages.sh"]
+    scripts          = ["${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/pipx-packages.sh"]
   }
 
   provisioner "shell" {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "DEBIAN_FRONTEND=noninteractive", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}"]
     execute_command  = "/bin/sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/homebrew.sh"]
+    scripts          = ["${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/homebrew.sh"]
   }
 
   provisioner "shell" {
     execute_command   = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts           = ["${path.root}/lib/virtual-environments/images/linux/scripts/base/snap.sh"]
+    scripts           = ["${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/snap.sh"]
   }
 
   provisioner "shell" {
     execute_command   = "/bin/sh -c '{{ .Vars }} {{ .Path }}'"
     expect_disconnect = true
-    scripts           = ["${path.root}/lib/virtual-environments/images/linux/scripts/base/reboot.sh"]
+    scripts           = ["${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/reboot.sh"]
   }
 
   provisioner "shell" {
     execute_command     = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
     pause_before        = "1m0s"
-    scripts             = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/cleanup.sh"]
+    scripts             = ["${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/cleanup.sh"]
     start_retry_timeout = "10m"
   }
 
   provisioner "shell" {
     execute_command = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    script          = "${path.root}/lib/virtual-environments/images/linux/scripts/base/apt-mock-remove.sh"
+    script          = "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/apt-mock-remove.sh"
   }
 
   provisioner "shell" {
@@ -411,7 +400,7 @@ build {
   provisioner "shell" {
     environment_vars = ["HELPER_SCRIPT_FOLDER=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "IMAGE_FOLDER=${var.image_folder}"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["${path.root}/lib/virtual-environments/images/linux/scripts/installers/post-deployment.sh"]
+    scripts          = ["${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/post-deployment.sh"]
   }
 
   provisioner "shell" {
