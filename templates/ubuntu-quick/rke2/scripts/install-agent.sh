@@ -10,3 +10,6 @@ sudo cp ~/packertmp/agent-config.yaml /etc/rancher/rke2/config.yaml
 #sudo cp ~/packtertmp/manifests/* /var/lib/rancher/rke2/server/manifests/
 
 sudo systemctl start rke2-agent.service
+
+# For elastic.... would rather not do this here, but for now, this works
+echo 'vm.max_map_count=262144' | sudo tee -a /etc/sysctl.conf
