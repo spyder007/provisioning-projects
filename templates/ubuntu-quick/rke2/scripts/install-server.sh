@@ -12,6 +12,9 @@ sudo cp ~/packertmp/server-config.yaml /etc/rancher/rke2/config.yaml
 sudo systemctl enable rke2-server.service
 sudo systemctl start rke2-server.service
 
+# For elastic.... would rather not do this here, but for now, this works
+echo 'vm.max_map_count=262144' | sudo tee -a /etc/sysctl.conf
+
 # Copy the creds file and node-token to an accessible location for future scripts
 sudo cp /etc/rancher/rke2/rke2.yaml .
 sudo chown $USER:$USER rke2.yaml
