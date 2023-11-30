@@ -495,21 +495,24 @@ function Add-NodeToRke2Cluster {
     
     $nodeDetail = New-Rke2ClusterNode -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -vmType $vmType -vmSize $vmSize -nodeType $nodeType -OutputFolder $OutputFolder -packerErrorAction $packerErrorAction -useUnifi $useUnifi
 
+    
     if ($nodeDetail.success) {
         if ($useUnifi) {
             $clusterDns = Get-ClusterDns -clusterName $clusterName
-            if ($nodeType -eq "server") {
+            # Servers get added to the cp-<cluster name>, while agents get added to tfx-<cluster name>
+            if ($nodeType -eq "server" -or $nodeType -eq "first-server") {
                 $clusterDns.controlPlane += @{
                     zoneName = "$dnsDomain"
                     hostName = "cp-$($clusterName)"
                     data = "$($nodeDetail.ipAddress)"
                 }
             }
-                
-            $clusterDns.traffic += @{
-                zoneName = "$dnsDomain"
-                hostName = "tfx-$($clusterName)"
-                data = "$($nodeDetail.ipAddress)"
+            else {
+                $clusterDns.traffic += @{
+                    zoneName = "$dnsDomain"
+                    hostName = "tfx-$($clusterName)"
+                    data = "$($nodeDetail.ipAddress)"
+                }
             }
             $clusterDns = Update-ClusterDns $clusterDns
         }
