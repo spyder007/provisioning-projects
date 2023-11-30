@@ -775,6 +775,7 @@ function New-Rke2ServerConfig {
         $serverConfig."token" = $existingClusterToken;
         $serverConfig."server" = "https://$($serverUrl):9345"
     }
+    $serverConfig."node-taint" = @("CriticalAddonsOnly=true:NoExecute")
     (ConvertTo-Yaml $serverConfig) | Set-Content -Path .\templates\ubuntu-quick\rke2\files\server-config.yaml
 }
 
