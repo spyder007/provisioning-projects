@@ -6,11 +6,16 @@ metadata:
 spec:
   valuesContent: |-
     controller:
+      kind: DaemonSet
+      daemonset:
+        useHostPort: true
       config:
         use-forwarded-headers: "true"
         proxy-buffer-size: "256k"
-        proxy-buffer-number: "4"
+        proxy-buffers-number: "4"
+        client-header-buffer-size: "256k"
         large-client-header-buffers: "4 16k"
+        proxy-body-size: "10m"
       metrics:
         enabled: "true"
         serviceMonitor:
