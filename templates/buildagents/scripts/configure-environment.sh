@@ -61,29 +61,3 @@ fi
 if is_ubuntu22; then
     sed -i 's/openssl_conf = openssl_init/#openssl_conf = openssl_init/g' /etc/ssl/openssl.cnf
 fi
-
-env | grep Image >> /etc/agent_environment
-env | grep ANDROID_ >> /etc/agent_environment
-env | grep JAVA_ >> /etc/agent_environment
-env | grep HOMEBREW_ >> /etc/agent_environment
-env | grep ANT_ >> /etc/agent_environment
-env | grep GRADLE_ >> /etc/agent_environment
-env | grep LEIN_ >> /etc/agent_environment
-env | grep CONDA >> /etc/agent_environment
-env | grep PIPX_ >> /etc/agent_environment
-env | grep AGENT_ >> /etc/agent_environment
-env | grep EDGEWEBDRIVER >> /etc/agent_environment
-env | grep CHROMEWEBDRIVER >> /etc/agent_environment
-env | grep CHROME_BIN >> /etc/agent_environment
-env | grep BOOTSTRAP_ >> /etc/agent_environment
-env | grep GHCUP_ >> /etc/agent_environment
-env | grep NVM_ >> /etc/agent_environment
-env | grep SELENIUM_ >> /etc/agent_environment
-env | grep SWIFT_ >> /etc/agent_environment
-env | grep VCPKG_ >> /etc/agent_environment
-env | grep DOTNET_ >> /etc/agent_environment
-env | grep LANG >> /etc/agent_environment
-env | grep M2_ >> /etc/agent_environment
-env | grep VSTS_ >> /etc/agent_environment
-env | grep LD_ >> /etc/agent_environment
-env | grep PERL5LIB >> /etc/agent_environment
