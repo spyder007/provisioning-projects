@@ -5,7 +5,8 @@ chmod 600 ~/.ssh/authorized_keys
 sudo mkdir /myagent 
 cd /myagent
 
-touch .env
+sudo touch .env
+sudo chmod 666 .env
 # Copy environment variables to .env file
 env | grep Image >> .env
 env | grep ANDROID_ >> .env
