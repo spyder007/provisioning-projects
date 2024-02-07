@@ -627,6 +627,24 @@ function New-Rke2ClusterNode
         
         $existingClusterToken = (Get-Content -Raw "$($rke2Settings.clusterStorage)/$clusterName/node-token")
     }
+
+    ## If it's a server, copy the rke2.yaml 
+    if ($detail.Success -and $nodeType -eq "server") {
+
+        $backupFolder = "$($rke2Settings.clusterStorage)/$clusterName/backup"
+        if (-Not (Test-Path $backupFolder)) {
+            New-Item -ItemType Directory $backupFolder | Out-Null
+        }
+
+        Get-ChildItem -Path "$($rke2Settings.clusterStorage)/$clusterName" -File | % { Copy-Item $_.FullName "$backupFolder/$($_.Name).bak" }
+
+        Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" $($detail.userName)@$($detail.ipAddress):rke2.yaml `"$($rke2Settings.clusterStorage)/$clusterName/rke2.yaml`""
+                
+        $config = (Get-Content -Raw "$($rke2Settings.clusterStorage)/$clusterName/rke2.yaml")
+        $config = $config.Replace("https://127.0.0.1", "https://cp-$($clusterName).$($dnsDomain)")
+        Set-Content -Path "$($rke2Settings.clusterStorage)/$clusterName/remote.yaml" -Value $config
+    }
+
     return $detail;
 }
 
