@@ -3,10 +3,9 @@ curl -sfL https://get.rke2.io --output install.sh
 sudo chmod +x install.sh
 
 export $(cat ~/packertmp/install_vars | xargs)
-echo "Version"
-echo $INSTALL_RKE2_VERSION
+echo "Version $INSTALL_RKE2_VERSION"
 
-sudo -E ./install.sh
+sudo --preserve-enf=INSTALL_RKE2_VERSION ./install.sh
 
 # Copy the server configuration file
 sudo mkdir -p /etc/rancher/rke2
