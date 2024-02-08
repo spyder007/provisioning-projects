@@ -588,6 +588,8 @@ function New-Rke2ClusterNode
     $packerTemplate = ".\templates\ubuntu-quick\$vmType.pkr.hcl"
     $httpFolder = ".\templates\ubuntu-quick\basic\http\"
     
+    New-Rke2VersionFile -clusterName $clusterName
+
     if ($nodeType -eq "server" -or $nodeType -eq "first-server") {
         New-Rke2ServerConfig -machineName $machineName -clusterName $clusterName -dnsDomain $dnsDomain -existingClusterToken $existingClusterToken
         $packerVariables = ".\templates\ubuntu-quick\rke2\$vmSize-server.pkrvars.hcl"
@@ -798,6 +800,15 @@ function New-Rke2ServerConfig {
     }
     $serverConfig."node-taint" = @("CriticalAddonsOnly=true:NoExecute")
     (ConvertTo-Yaml $serverConfig) | Set-Content -Path .\templates\ubuntu-quick\rke2\files\server-config.yaml
+}
+
+
+function New-Rke2VersionFile {
+    param(
+        [string] $clusterName
+    )
+    $clusterInfo = (Get-Content -Raw "$($rke2Settings.clusterStorage)/$clusterName/info.json") | ConvertFrom-Json
+    "INSTALL_RKE2_VERSION=$($clusterInfo.version)" | Set-Content -Path .\templates\ubuntu-quick\rke2\files\install_vars
 }
 
 function Get-ClusterInfo {

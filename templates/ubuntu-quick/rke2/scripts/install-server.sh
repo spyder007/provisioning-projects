@@ -2,6 +2,10 @@
 curl -sfL https://get.rke2.io --output install.sh
 sudo chmod +x install.sh
 
+set -a
+. ~/packertmp/install_vars
+set +a
+
 sudo ./install.sh
 
 # Copy the server configuration file
