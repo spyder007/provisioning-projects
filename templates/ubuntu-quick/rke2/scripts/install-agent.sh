@@ -3,7 +3,9 @@ curl -sfL https://get.rke2.io --output install.sh
 sudo chmod +x install.sh
 
 export $(cat ~/packertmp/install_vars | xargs)
-sudo --preserve-enf=INSTALL_RKE2_VERSION INSTALL_RKE2_TYPE="agent" ./install.sh
+echo "Version $INSTALL_RKE2_VERSION"
+
+sudo --preserve-env=INSTALL_RKE2_VERSION INSTALL_RKE2_TYPE="agent" ./install.sh
 
 sudo systemctl enable rke2-agent.service
 sudo mkdir -p /etc/rancher/rke2

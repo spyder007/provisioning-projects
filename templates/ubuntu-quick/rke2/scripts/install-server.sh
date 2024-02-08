@@ -5,7 +5,7 @@ sudo chmod +x install.sh
 export $(cat ~/packertmp/install_vars | xargs)
 echo "Version $INSTALL_RKE2_VERSION"
 
-sudo --preserve-enf=INSTALL_RKE2_VERSION ./install.sh
+sudo --preserve-env=INSTALL_RKE2_VERSION ./install.sh
 
 # Copy the server configuration file
 sudo mkdir -p /etc/rancher/rke2
