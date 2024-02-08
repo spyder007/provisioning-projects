@@ -2,9 +2,9 @@
 curl -sfL https://get.rke2.io --output install.sh
 sudo chmod +x install.sh
 
-set -a
-. ~/packertmp/install_vars
-set +a
+export $(cat ~/packertmp/install_vars | xargs)
+echo "Version"
+echo $INSTALL_RKE2_VERSION
 
 sudo ./install.sh
 
