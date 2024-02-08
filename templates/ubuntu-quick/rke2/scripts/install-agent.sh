@@ -5,7 +5,7 @@ sudo chmod +x install.sh
 export $(cat ~/packertmp/install_vars | xargs)
 echo "Version"
 echo $INSTALL_RKE2_VERSION
-sudo INSTALL_RKE2_TYPE="agent" ./install.sh
+sudo -E INSTALL_RKE2_TYPE="agent" ./install.sh
 
 sudo systemctl enable rke2-agent.service
 sudo mkdir -p /etc/rancher/rke2
