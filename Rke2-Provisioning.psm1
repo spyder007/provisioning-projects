@@ -808,7 +808,7 @@ function New-Rke2VersionFile {
         [string] $clusterName
     )
     $clusterInfo = (Get-Content -Raw "$($rke2Settings.clusterStorage)/$clusterName/info.json") | ConvertFrom-Json
-    "INSTALL_RKE2_VERSION=$($clusterInfo.version)" | Set-Content -Path .\templates\ubuntu-quick\rke2\files\install_vars
+    "INSTALL_RKE2_VERSION=`"$($clusterInfo.version)`"" | Set-Content -Path .\templates\ubuntu-quick\rke2\files\install_vars
 }
 
 function Get-ClusterInfo {
