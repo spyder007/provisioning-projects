@@ -96,12 +96,12 @@ variable "ms_agent_pat" {
 }
 variable "ms_agent_url" {
   type    = string
-  default = "https://vstsagentpackage.azureedge.net/agent/3.232.3"
+  default = "https://vstsagentpackage.azureedge.net/agent/3.234.0"
 }
 
 variable "ms_agent_filename" {
   type    = string
-  default = "vsts-agent-linux-x64-3.232.3.tar.gz"
+  default = "vsts-agent-linux-x64-3.234.0.tar.gz"
 }
 
 variable "output_dir" {
