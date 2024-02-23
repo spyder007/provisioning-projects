@@ -61,12 +61,12 @@ variable "installer_script_folder" {
 
 variable "iso_checksum" {
   type    = string
-  default = "a4acfda10b18da50e2ec50ccaf860d7f20b389df8765611142305c0e911d16fd"
+  default = "45f873de9f8cb637345d6e66a583762730bbea30277ef7b32c9c3bd6700a32b2"
 }
 
 variable "iso_url" {
   type    = string
-  default = "https://releases.ubuntu.com/22.04/ubuntu-22.04.3-live-server-amd64.iso"
+  default = "https://releases.ubuntu.com/22.04.4/ubuntu-22.04.4-live-server-amd64.iso"
 }
 
 variable "mac_address" {
