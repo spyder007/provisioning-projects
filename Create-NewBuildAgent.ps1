@@ -32,7 +32,9 @@ param (
     $OutputFolder="d:\\Virtual Machines\\",
     [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
     $packerErrorAction = "cleanup",
-    [bool] $useUnifi = $true
+    [bool] $useUnifi = $true,
+    [string] $secretVariableFile = ".\templates\buildagents\secrets.pkrvars.hcl",
+    [string] $extraVariableFile = ".\templates\buildagents\buildagent.pkrvars.hcl"
 )
 
 Import-Module ./HyperV-Provisioning.psm1
@@ -42,4 +44,4 @@ $agentDate=(Get-Date).ToString("yyMMdd")
 $machineName = "agt-ubt-$agentDate"
 
 ## Create and Provision agent
-Build-Ubuntu -TemplateFile ".\templates\buildagents\$($type).pkr.hcl" -HostHttpFolder ".\templates\buildagents\http\" -SecretVariableFile ".\templates\buildagents\secrets.pkrvars.hcl" -ExtraVariableFile ".\templates\buildagents\buildagent.pkrvars.hcl" -packerErrorAction "$packerErrorAction" -OutputFolder "$OutputFolder" -machineName $machineName -useUnifi $useUnifi
+Build-Ubuntu -TemplateFile ".\templates\buildagents\$($type).pkr.hcl" -HostHttpFolder ".\templates\buildagents\http\" -SecretVariableFile "$secretVariableFile" -ExtraVariableFile "$extraVariableFile" -packerErrorAction "$packerErrorAction" -OutputFolder "$OutputFolder" -machineName $machineName -useUnifi $useUnifi
