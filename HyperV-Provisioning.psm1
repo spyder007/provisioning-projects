@@ -408,23 +408,11 @@ function Remove-HyperVVm {
     param (
         [Parameter(Mandatory = $true)]
         $machineName,
-        [bool]
-        $isMsAgent = $false,
-        [Parameter()]
-        $msAgentPAT,
-        [Parameter()]
-        $userName = "",
-        [Parameter()]
-        $password = "",
         [bool] $useUnifi = $true
     )
     
     if ($useUnifi) {
         Import-Module ./Unifi.psm1
-    }
-    
-    if ($isMsAgent) {
-        Invoke-Expression "ssh -o StrictHostKeyChecking=false $($userName):`"$password`"@$machineName `"export MS_AGENT_PAT=$msAgentPAT;cd /imagegeneration; sudo chmod 777 remove-agent.sh; ./remove-agent.sh`""
     }
     
     $vm = Get-Vm $machineName

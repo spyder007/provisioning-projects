@@ -55,7 +55,7 @@ $poolId = $poolSearch.value.id
 
 $agents = Invoke-RestMethod -Uri "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents" -Headers $headers
 
-$agentNames = $agents.value | Select-Object -Property name
+$agentNames = $agents.value | Select-Object -Property name, id
 
 $vms = Get-Vm agt-ubt-* | Where-Object { $_.Name -in $agentNames.name }
 
@@ -65,8 +65,14 @@ if ($vms.Count -gt 1) {
     $vms  | Select-Object -Property Name, @{ Name="Date"; Expression={[DateTime]::ParseExact($_.Name.Replace("agt-ubt-", ""), 'yyMMdd', $null)}} 
         | sort-object -property date | Select-Object -First ($vms.Count - 1) 
         | ForEach-Object {
+            
             Write-Host "Removing $($_.Name)"
-            Remove-HyperVVm -machinename $($_.Name) -isMsAgent $true -msAgentPAT $devOpsPat -userName $agentUser -password $agentPassword
+            
+            Write-Host "Calling Delete"
+            Write-Host "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($_.Id)"
+            #Invoke-RestMethod -Uri "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($_.Id)" -Method DELETE -Headers $headers
+            
+            #Remove-HyperVVm -machinename $($_.Name)
         }
 }
 else {
