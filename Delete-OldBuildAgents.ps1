@@ -28,9 +28,7 @@ param (
     [string] $devOpsOrg,    
     [string] $devOpsUsername,
     [string] $devOpsPat,
-    [string] $devOpsPool,
-    [string] $agentUser,
-    [string] $agentPassword,   
+    [string] $devOpsPool, 
     [bool] $useUnifi = $true
 )
 
@@ -67,12 +65,8 @@ if ($vms.Count -gt 1) {
         | ForEach-Object {
             
             Write-Host "Removing $($_.Name)"
-            
-            Write-Host "Calling Delete"
-            Write-Host "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($_.Id)"
-            #Invoke-RestMethod -Uri "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($_.Id)" -Method DELETE -Headers $headers
-            
-            #Remove-HyperVVm -machinename $($_.Name)
+            Invoke-RestMethod -Uri "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($_.Id)" -Method DELETE -Headers $headers
+            Remove-HyperVVm -machinename $($_.Name)
         }
 }
 else {
