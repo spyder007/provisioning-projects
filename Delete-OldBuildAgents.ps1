@@ -65,7 +65,9 @@ if ($vms.Count -gt 1) {
         | ForEach-Object {
             
             Write-Host "Removing $($_.Name)"
-            Invoke-RestMethod -Uri "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($_.Id)?api-version=7.2-preview.1" -Method DELETE -Headers $headers
+            $url = "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($_.Id)?api-version=7.2-preview.1"
+            Write-Host "Url: $url"
+            Invoke-RestMethod -Uri "$url" -Method DELETE -Headers $headers
             Remove-HyperVVm -machinename $($_.Name)
         }
 }
