@@ -60,12 +60,13 @@ $vms = Get-Vm agt-ubt-* | Where-Object { $_.Name -in $agentNames.name }
 if ($vms.Count -gt 1) {
     Write-Host "Removing old agents"
 
-    $vms  | Select-Object -Property Name, Id, @{ Name="Date"; Expression={[DateTime]::ParseExact($_.Name.Replace("agt-ubt-", ""), 'yyMMdd', $null)}} 
+    $vms  | Select-Object -Property Name, @{ Name="Date"; Expression={[DateTime]::ParseExact($_.Name.Replace("agt-ubt-", ""), 'yyMMdd', $null)}} 
         | sort-object -property date | Select-Object -First ($vms.Count - 1) 
         | ForEach-Object {
             
             Write-Host "Removing $($_.Name)"
-            $url = "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($_.Id)?api-version=7.2-preview.1"
+            $devOpsRecord = $agentNames | Where-Object { $_.name -eq $_.Name }
+            $url = "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($devOpsRecord.id)?api-version=7.2-preview.1"
             Write-Host "Url: $url"
             Invoke-RestMethod -Uri "$url" -Method DELETE -Headers $headers
             Remove-HyperVVm -machinename $($_.Name)
