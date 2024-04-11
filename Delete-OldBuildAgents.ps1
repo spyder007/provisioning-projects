@@ -69,7 +69,7 @@ if ($vms.Count -gt 1) {
             
             $devOpsRecord = $agentNames | Where-Object { $_.name -eq $machineName }
             $url = "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($devOpsRecord.id)?api-version=7.2-preview.1"
-            Write-Host "Url: $url"
+            Write-Debug "Url: $url"
             Invoke-RestMethod -Uri "$url" -Method DELETE -Headers $headers
             Remove-HyperVVm -machinename $($_.Name)
         }
