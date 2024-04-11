@@ -60,7 +60,7 @@ $vms = Get-Vm agt-ubt-* | Where-Object { $_.Name -in $agentNames.name }
 if ($vms.Count -gt 1) {
     Write-Host "Removing old agents"
 
-    $vms  | Select-Object -Property Name, @{ Name="Date"; Expression={[DateTime]::ParseExact($_.Name.Replace("agt-ubt-", ""), 'yyMMdd', $null)}} 
+    $vms  | Select-Object -Property Name, Id, @{ Name="Date"; Expression={[DateTime]::ParseExact($_.Name.Replace("agt-ubt-", ""), 'yyMMdd', $null)}} 
         | sort-object -property date | Select-Object -First ($vms.Count - 1) 
         | ForEach-Object {
             
