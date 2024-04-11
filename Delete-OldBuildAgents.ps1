@@ -64,8 +64,10 @@ if ($vms.Count -gt 1) {
         | sort-object -property date | Select-Object -First ($vms.Count - 1) 
         | ForEach-Object {
             
-            Write-Host "Removing $($_.Name)"
-            $devOpsRecord = $agentNames | Where-Object { $_.name -eq $_.Name }
+            $machineName = $_.Name
+            Write-Host "Removing $($machineName)"
+            
+            $devOpsRecord = $agentNames | Where-Object { $_.name -eq $machineName }
             $url = "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($devOpsRecord.id)?api-version=7.2-preview.1"
             Write-Host "Url: $url"
             Invoke-RestMethod -Uri "$url" -Method DELETE -Headers $headers
