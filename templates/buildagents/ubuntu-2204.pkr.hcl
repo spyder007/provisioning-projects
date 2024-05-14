@@ -1,7 +1,7 @@
 
 variable "build_temp" {
   type    = string
-  default = "d:\\buildtemp"
+  default = "c:\\buildtemp"
 }
 
 variable "cpus" {
