@@ -195,7 +195,12 @@ build {
     script          = "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/configure-apt-mock.sh"
   }
 
-    provisioner "shell" {
+  provisioner "file" {
+    destination = "${var.helper_script_folder}"
+    source      = "${path.root}/lib/virtual-environments/images/ubuntu/scripts/helpers"
+  }
+
+  provisioner "shell" {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}","DEBIAN_FRONTEND=noninteractive"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
     scripts          = [
@@ -207,11 +212,6 @@ build {
   provisioner "shell" {
     execute_command = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
     script          = "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/configure-limits.sh"
-  }
-
-  provisioner "file" {
-    destination = "${var.helper_script_folder}"
-    source      = "${path.root}/lib/virtual-environments/images/ubuntu/scripts/helpers"
   }
 
   provisioner "file" {
