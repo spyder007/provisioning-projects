@@ -108,6 +108,6 @@ build {
   }
 
   provisioner "shell" {
-    inline = ["sudo systemctl restart systemd-networkd"]
+    inline = [""]
   }
 }
