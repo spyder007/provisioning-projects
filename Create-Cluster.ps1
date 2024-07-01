@@ -11,7 +11,7 @@
         VM.
 
         .PARAMETER type
-        The type of node.  Current supported types are ubuntu-2204 and ubuntu-2004
+        The type of node.  Current supported types are ubuntu-2204 and ubuntu-2404
 
         .PARAMETER OutputFolder
         The base folder where the VM information will be stored.
@@ -37,7 +37,7 @@ param (
     [Parameter(Mandatory=$true,Position=1)]
 	$baseName,
     [Parameter()]
-    [ValidateSet("ubuntu-2204", "ubuntu-2004")]
+    [ValidateSet("ubuntu-2204", "ubuntu-2404")]
     $type = "ubuntu-2204",
     [ValidateSet("sm", "med")]
     $nodeSize="med",

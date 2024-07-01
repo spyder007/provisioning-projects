@@ -8,7 +8,7 @@
         in this repository before running this script.
 
         .PARAMETER type
-        The type of Agent.  Current supported types are ubuntu-2204 and ubuntu-2004
+        The type of Agent.  Current supported types are ubuntu-2204 and ubuntu-2404
 
         .PARAMETER OutputFolder
         The base folder where the VM information will be stored.
@@ -26,7 +26,7 @@
 
 param (
     [Parameter()]
-    [ValidateSet("ubuntu-2204", "ubuntu-2004")]
+    [ValidateSet("ubuntu-2204", "ubuntu-2404")]
     $type,
     [Parameter()]
     $OutputFolder="d:\\Virtual Machines\\",
