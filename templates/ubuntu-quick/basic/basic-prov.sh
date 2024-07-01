@@ -12,8 +12,7 @@ sudo dpkg-reconfigure openssh-server
 sudo service ssh restart
 
 echo "Force DHCP Refresh"
-sudo dhclient -r
-sudo dhclient
+sudo systemctl restart systemd-networkd
 
 mkdir -p ~/.ssh
 cp ~/packertmp/authorized_keys ~/.ssh/
