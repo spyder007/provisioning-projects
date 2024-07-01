@@ -108,6 +108,6 @@ build {
   }
 
   provisioner "shell" {
-    inline = ["sudo dhclient -r"]
+    inline = ["sudo systemctl restart systemd-networkd"]
   }
 }
