@@ -7,9 +7,6 @@
     Runner Images repository (https://github.com/actions/runner-images).  Make sure you initialize the submodules
     in this repository before running this script.
 
-    .PARAMETER type
-    The type of Agent.  Current supported types are ubuntu-2204 and ubuntu-2004
-
     .PARAMETER OutputFolder
     The base folder where the VM information will be stored.
 
@@ -20,8 +17,6 @@
     .PARAMETER useUnifi
     If true, the machine will be provisioned using the Unifi module to request VM Network information.
 
-    .EXAMPLE
-    PS> .\Create-NewBuildAgent.ps1 -type ubuntu-2204 -OutputFolder "c:\my\virtualmachines"
 #>
 
 param (

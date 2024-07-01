@@ -13,7 +13,7 @@ function New-Rke2Cluster {
         The DNS to be used for the cluster registration url
 
         .PARAMETER type
-        The type of node.  Current supported types are ubuntu-2204
+        The type of node.  Current supported types are ubuntu-2204 and ubuntu-2404
 
         .PARAMETER serverNodeCount
         The number of Control Plane nodes to create
@@ -47,7 +47,7 @@ function New-Rke2Cluster {
         [Parameter(Mandatory=$true,Position=2)]
         [string] $dnsDomain,
         [Parameter()]
-        [ValidateSet("ubuntu-2204")]
+        [ValidateSet("ubuntu-2204", "ubuntu-2404")]
         [string] $type = "ubuntu-2204",
         [ValidateSet("sm", "med")]
         [string] $nodeSize="med",
@@ -265,7 +265,7 @@ function Deploy-UpdatedRke2ClusterNodes {
     The domain to be used for the server url.
 
     .PARAMETER type
-    The type of node.  Current supported types are ubuntu-2204
+    The type of node.  Current supported types are ubuntu-2204 and ubuntu-2404
 
     .PARAMETER nodeSize
     This parameter is used to locate a pkrvars.hcl file in ./templates/ubuntu/docker/ which corresponds to the nodeSize.  It uses the
@@ -294,7 +294,7 @@ param (
     [Parameter()]
     [string] $dnsDomain = "domain.local",
     [Parameter()]
-    [ValidateSet("ubuntu-2204")]
+    [ValidateSet("ubuntu-2204", "ubuntu-2404")]
     [string] $type = "ubuntu-2204",
     [ValidateSet("sm", "med")]
     [string] $nodeSize="med",
@@ -343,7 +343,7 @@ function Deploy-ReplacementRke2Node {
         [Parameter()]
         [string] $dnsDomain = "domain.local",
         [Parameter()]
-        [ValidateSet("ubuntu-2204")]
+        [ValidateSet("ubuntu-2204", "ubuntu-2404")]
         [string] $type = "ubuntu-2204",
         [ValidateSet("sm", "med")]
         [string] $nodeSize="med",
@@ -460,7 +460,7 @@ function Add-NodeToRke2Cluster {
     param(
         $clusterName,
         $dnsDomain,
-        [ValidateSet("ubuntu-2204")]
+        [ValidateSet("ubuntu-2204", "ubuntu-2404")]
         $vmType,
         $vmSize,
         [ValidateSet("server", "agent")]
@@ -565,7 +565,7 @@ function New-Rke2ClusterNode
         $machineName,
         $clusterName,
         $dnsDomain,
-        [ValidateSet("ubuntu-2204")]
+        [ValidateSet("ubuntu-2204", "ubuntu-2404")]
         $vmType = "ubuntu-2204",
         $vmSize,
         [ValidateSet("first-server", "server", "agent")]
