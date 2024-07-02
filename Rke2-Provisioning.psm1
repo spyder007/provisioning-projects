@@ -638,7 +638,7 @@ function New-Rke2ClusterNode
             New-Item -ItemType Directory $backupFolder | Out-Null
         }
 
-        Get-ChildItem -Path "$($rke2Settings.clusterStorage)/$clusterName" -File | % { Copy-Item $_.FullName "$backupFolder/$($_.Name).bak" }
+        Get-ChildItem -Path "$($rke2Settings.clusterStorage)/$clusterName" -File | Where-Object { Copy-Item $_.FullName "$backupFolder/$($_.Name).bak" }
 
         Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" $($detail.userName)@$($detail.ipAddress):rke2.yaml `"$($rke2Settings.clusterStorage)/$clusterName/rke2.yaml`""
                 
