@@ -106,8 +106,4 @@ build {
   provisioner "shell" {
     scripts = "${var.provisioning_scripts}"
   }
-
-  provisioner "shell" {
-    inline = [""]
-  }
 }
