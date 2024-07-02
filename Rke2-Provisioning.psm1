@@ -689,7 +689,7 @@ function Remove-NodeFromRke2Cluster {
     }
     
     Write-Host "Wait 5 minutes before removing to ensure all services have come up."
-    Start-Sleep 600
+    Start-Sleep 300
 
     if ($useUnifi) {
         $clusterDns = Get-ClusterDns -clusterName $clusterName
