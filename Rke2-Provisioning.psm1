@@ -688,8 +688,8 @@ function Remove-NodeFromRke2Cluster {
         Write-Host "Exception calling kube drain: $_"
     }
     
-    Write-Host "Wait 5 minutes before removing to ensure all services have come up."
-    Start-Sleep 300
+    Write-Host "Wait 3 minutes before removing to ensure all services have come up."
+    Start-Sleep 180
 
     if ($useUnifi) {
         $clusterDns = Get-ClusterDns -clusterName $clusterName
