@@ -7,6 +7,7 @@ $NUM_VER=$(cut -f2 <<< "$RELEASE_VER")
 if [ $NUM_VER -eg "24.04"]
 then
     sudo hostnamectl set-hostname "$VM_NAME"
+    sudo sed -i "s#$BASE_NAME#$VM_NAME#g" /etc/hostname
 else
     sudo sed -i "s#$BASE_NAME#$VM_NAME#g" /etc/hostname
 fi
