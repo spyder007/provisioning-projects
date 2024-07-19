@@ -631,21 +631,21 @@ function New-Rke2ClusterNode
     }
 
     ## If it's a server, copy the rke2.yaml 
-    if ($detail.Success -and $nodeType -eq "server") {
+    # if ($detail.Success -and $nodeType -eq "server") {
 
-        $backupFolder = "$($rke2Settings.clusterStorage)/$clusterName/backup"
-        if (-Not (Test-Path $backupFolder)) {
-            New-Item -ItemType Directory $backupFolder | Out-Null
-        }
+    #     $backupFolder = "$($rke2Settings.clusterStorage)/$clusterName/backup"
+    #     if (-Not (Test-Path $backupFolder)) {
+    #         New-Item -ItemType Directory $backupFolder | Out-Null
+    #     }
 
-        Get-ChildItem -Path "$($rke2Settings.clusterStorage)/$clusterName" -File | Where-Object { Copy-Item $_.FullName "$backupFolder/$($_.Name).bak" }
+    #     Get-ChildItem -Path "$($rke2Settings.clusterStorage)/$clusterName" -File | Where-Object { Copy-Item $_.FullName "$backupFolder/$($_.Name).bak" }
 
-        Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" $($detail.userName)@$($detail.ipAddress):rke2.yaml `"$($rke2Settings.clusterStorage)/$clusterName/rke2.yaml`""
+    #     Invoke-Expression "scp -o `"StrictHostKeyChecking no`" -o `"UserKnownHostsFile c:\tmp`" -o `"CheckHostIP no`" $($detail.userName)@$($detail.ipAddress):rke2.yaml `"$($rke2Settings.clusterStorage)/$clusterName/rke2.yaml`""
                 
-        $config = (Get-Content -Raw "$($rke2Settings.clusterStorage)/$clusterName/rke2.yaml")
-        $config = $config.Replace("https://127.0.0.1", "https://cp-$($clusterName).$($dnsDomain)")
-        Set-Content -Path "$($rke2Settings.clusterStorage)/$clusterName/remote.yaml" -Value $config
-    }
+    #     $config = (Get-Content -Raw "$($rke2Settings.clusterStorage)/$clusterName/rke2.yaml")
+    #     $config = $config.Replace("https://127.0.0.1", "https://cp-$($clusterName).$($dnsDomain)")
+    #     Set-Content -Path "$($rke2Settings.clusterStorage)/$clusterName/remote.yaml" -Value $config
+    # }
 
     return $detail;
 }
