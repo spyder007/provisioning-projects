@@ -66,7 +66,7 @@ variable "iso_checksum" {
 
 variable "iso_url" {
   type    = string
-  default = "https://releases.ubuntu.com/24.04.1/ubuntu-24.04.1-live-server-amd64.iso"
+  default = "https://releases.ubuntu.com/22.04/ubuntu-22.04.4-live-server-amd64.iso"
 }
 
 variable "mac_address" {
