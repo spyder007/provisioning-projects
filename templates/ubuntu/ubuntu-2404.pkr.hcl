@@ -21,7 +21,7 @@ variable "http" {
 
 variable "iso_checksum" {
   type    = string
-  default = "8762f7e74e4d64d72fceb5f70682e6b069932deedb4949c6975d0f0fe0a91be3"
+  default = "e240e4b801f7bb68c20d1356b60968ad0c33a41d00d828e74ceb3364a0317be9"
 }
 
 variable "iso_url" {
