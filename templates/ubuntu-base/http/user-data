@@ -20,7 +20,6 @@ autoinstall:
     - apt-transport-https
     - ca-certificates
     - curl
-    - nfs-common
     - linux-cloud-tools-virtual
   early-commands:
     - apt update
