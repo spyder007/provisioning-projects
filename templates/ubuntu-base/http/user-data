@@ -17,6 +17,7 @@ autoinstall:
   ssh:
     install-server: true
   packages:
+    - linux-cloud-tools-virtual
     - apt-transport-https
     - ca-certificates
     - curl
@@ -24,6 +25,4 @@ autoinstall:
     - apt update
   late-commands:
     - echo '{{username}} ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/{{username}}
-    - systemctl enable ssh
-    - systemctl start ssh
 
