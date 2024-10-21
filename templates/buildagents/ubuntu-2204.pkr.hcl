@@ -282,6 +282,7 @@ build {
   provisioner "shell" {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DEBIAN_FRONTEND=noninteractive"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
+    expect_disconnect = true
     scripts          = [
                         "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-actions-cache.sh",
 			"${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-runner-package.sh",
