@@ -206,7 +206,8 @@ build {
     scripts          = [
                         "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-ms-repos.sh",
                         "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/configure-apt-sources.sh",
-                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/configure-apt.sh"]
+                        "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/configure-apt.sh"
+			]
   }
   
   provisioner "shell" {
