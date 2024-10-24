@@ -132,6 +132,7 @@ function Build-Ubuntu {
         $extraVarFileArgument = "-var-file `"$ExtraVariableFile`""
     }
 
+    Invoke-Expression "packer init `"$TemplateFile`"" | Out-Host
     Invoke-Expression "packer build $onError -var-file `"$SecretVariableFile`" $extraVarFileArgument $httpArgument -var `"output_dir=$OutputFolder`" $macArgument -var `"vm_name=$machineName`" $ExtraPackerArguments `"$TemplateFile`"" | Out-Host
 
     $success = ($global:LASTEXITCODE -eq 0);
@@ -260,6 +261,7 @@ function Build-Windows {
     }
     $onError = "-on-error=$packerErrorAction"
 
+    Invoke-Expression "packer init `"$TemplateFile`"" | Out-Host
     Invoke-Expression "packer build $onError -var-file `"$VariableFile`" -var `"output_dir=$OutputFolder`" $macArgument -var `"vm_name=$machineName`" `"$TemplateFile`"" | Out-Host
 
     $success = ($global:LASTEXITCODE -eq 0);
