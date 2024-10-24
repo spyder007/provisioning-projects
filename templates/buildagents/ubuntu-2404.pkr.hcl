@@ -309,6 +309,13 @@ build {
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-gcc-compilers.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-firefox.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-gfortran.sh",
+                      ]
+  }
+
+  provisioner "shell" {
+  environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DEBIAN_FRONTEND=noninteractive"]
+  execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
+  scripts          = [
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-git.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-git-lfs.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-github-cli.sh",
@@ -327,6 +334,13 @@ build {
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-kotlin.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-mysql.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-nginx.sh",
+                      ]
+  }
+
+  provisioner "shell" {
+  environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DEBIAN_FRONTEND=noninteractive"]
+  execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
+  scripts          = [
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-nodejs.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-bazel.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-php.sh",
