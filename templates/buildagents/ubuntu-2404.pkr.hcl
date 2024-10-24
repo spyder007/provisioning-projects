@@ -329,7 +329,6 @@ build {
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-git-lfs.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-github-cli.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-google-chrome.sh",
-                      "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-haskell.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-java-tools.sh",
                       ]
   }
