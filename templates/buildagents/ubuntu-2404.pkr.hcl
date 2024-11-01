@@ -199,14 +199,14 @@ build {
     scripts = "${var.provisioning_scripts}"
   }
 
-  provisioner "shell" {
-    execute_command = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    script          = "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/configure-apt-mock.sh"
-  }
-
   provisioner "file" {
     destination = "${var.helper_script_folder}"
     source      = "${path.root}/lib/virtual-environments/images/ubuntu/scripts/helpers"
+  }
+
+  provisioner "shell" {
+    execute_command = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
+    script          = "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/configure-apt-mock.sh"
   }
 
   provisioner "shell" {
@@ -305,63 +305,34 @@ build {
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-swift.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-cmake.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-codeql-bundle.sh",
-                      ]
-  }
-
-  provisioner "shell" {
-  environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DEBIAN_FRONTEND=noninteractive"]
-  execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-  scripts          = [
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-container-tools.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-dotnetcore-sdk.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-microsoft-edge.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-gcc-compilers.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-firefox.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-gfortran.sh",
-                      ]
-  }
-
-  provisioner "shell" {
-  environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DEBIAN_FRONTEND=noninteractive"]
-  execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-  scripts          = [
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-git.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-git-lfs.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-github-cli.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-google-chrome.sh",
+		      "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-google-cloud-cli.sh",
+		      "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-haskell.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-java-tools.sh",
-                      ]
-  }
 
-  provisioner "shell" {
-  environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DEBIAN_FRONTEND=noninteractive"]
-  execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-  scripts          = [
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-kubernetes-tools.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-miniconda.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-kotlin.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-mysql.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-nginx.sh",
-                      ]
-  }
+		      "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-nvm.sh",
 
-  provisioner "shell" {
-  environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DEBIAN_FRONTEND=noninteractive"]
-  execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-  scripts          = [
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-nodejs.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-bazel.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-php.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-postgresql.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-pulumi.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-ruby.sh",
-                      ]
-  }
 
-  provisioner "shell" {
-  environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DEBIAN_FRONTEND=noninteractive"]
-  execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-  scripts          = [
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-rust.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-julia.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-selenium.sh",
@@ -377,7 +348,7 @@ build {
   }
 
   provisioner "shell" {
-    environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DOCKERHUB_LOGIN=${var.dockerhub_login}", "DOCKERHUB_PASSWORD=${var.dockerhub_password}"]
+    environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DOCKERHUB_LOGIN=${var.dockerhub_login}", "DOCKERHUB_PASSWORD=${var.dockerhub_password}", "DOCKERHUB_PULL_IMAGES=NO"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
     scripts          = ["${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-docker.sh"]
   }
