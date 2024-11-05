@@ -344,6 +344,7 @@ build {
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-pypy.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-python.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-zstd.sh"
+                      "${path.root}/scripts/install-opentofu.sh"
                       ]
   }
 
