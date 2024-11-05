@@ -13,7 +13,5 @@ curl --proto '=https' --tlsv1.2 -fsSL https://get.opentofu.org/install-opentofu.
     && ./install-opentofu.sh --install-method deb \
     && rm install-opentofu.sh
 
-OPENTOFU=/usr/share/tofu
-set_etc_environment_variable "OPENTOFU" "${OPENTOFU}"
+set_etc_environment_variable "OPENTOFU" "/usr/bin/tofu"
 
-ln -s $OPENTOFU/bin/tofu /usr/bin/tofu
