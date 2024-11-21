@@ -367,3 +367,10 @@ function Get-HyperVNetworkInfo {
         IpV4Address   = ($networkAdapter.IPAddresses | Where-Object { $_ -match $ipv4Regex } )
     }
 }
+
+function Find-HyperVNetworkInfo {
+    param(
+        $vmSearchString
+    )
+    return get-vm $vmSearchString | Select-Object Name, @{n='IpAddress';e= {(Get-HyperVNetworkInfo $_.Name).IpV4Address}}, @{n='macAddress';e= {(Get-HyperVNetworkInfo $_.Name).MacAddress}}
+}
