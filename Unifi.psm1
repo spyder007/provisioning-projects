@@ -147,7 +147,8 @@ Function Invoke-ProvisionUnifiClient {
         [Parameter(Mandatory = $true)]
         $hostName,
         $staticIp = $true,
-        $syncDns = $true
+        $syncDns = $true,
+        $network = "default"
     )
 
     $unifiVars = Get-UnifiEnvironmentVariables
@@ -170,6 +171,7 @@ Function Invoke-ProvisionUnifiClient {
         hostName  = "$hostName"
         static_ip = $staticIp
         sync_dns  = $syncDns
+        network   = "$network"
     }
 
     $apiUrl = $apiUrl.TrimEnd("/")
