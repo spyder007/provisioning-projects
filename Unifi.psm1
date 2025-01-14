@@ -148,7 +148,7 @@ Function Invoke-ProvisionUnifiClient {
         $hostName,
         $staticIp = $true,
         $syncDns = $true,
-        $network = "default"
+        $network = "Default"
     )
 
     $unifiVars = Get-UnifiEnvironmentVariables
@@ -180,6 +180,11 @@ Function Invoke-ProvisionUnifiClient {
 
     $result = Invoke-RestMethod "$apiUrl/client/provision" -headers $headers -method Post -Body $bodyJson -ContentType 'application/json'
 
+    if ($false -eq $result.Success) {
+        Write-Error "Error provisioning client: $($result.Errors)"
+        return $false
+    }
+    
     return @{
         RawMacAddress = $result.data.mac.Replace(":", "")
         MacAddress    = $result.data.mac
