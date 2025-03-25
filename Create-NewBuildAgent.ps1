@@ -47,3 +47,11 @@ Write-Host "Creating new agent: $machineName"
 
 ## Create and Provision agent
 Build-Ubuntu -TemplateFile ".\templates\buildagents\$($type).pkr.hcl" -HostHttpFolder ".\templates\buildagents\http\" -SecretVariableFile "$secretVariableFile" -ExtraVariableFile "$extraVariableFile" -packerErrorAction "$packerErrorAction" -OutputFolder "$OutputFolder" -machineName $machineName -useUnifi $useUnifi -importAndStart $true
+
+$notes = @{
+    startGroup = 6
+    delayOffset = 0
+}
+
+$vmNotes = $notes | ConvertTo-Json 
+Set-VM -VMName $machineName -Notes $vmNotes | Out-Null
