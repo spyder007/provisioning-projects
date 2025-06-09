@@ -1,0 +1,1 @@
+provisioning_scripts = ["./templates/proxmox/rke-quick/scripts/install-agent.sh"]
