@@ -246,7 +246,7 @@ Function Get-PxVmIpAddress {
 
     $ticket = Invoke-ProxmoxLogin
 
-    Write-Host "Retrieving IP address for VM ID: $vmId on node: $pxNode"
+    Write-Debug "Retrieving IP address for VM ID $vmId on node $pxNode"
 
     $response = Get-PveNodesQemuAgentNetworkGetInterfaces -PveTicket $ticket -Node $pxNode -VmId $vmId
 
@@ -277,14 +277,14 @@ Function Resize-PxVmDisk {
 
     $ticket = Invoke-ProxmoxLogin
 
-    Write-Host "Resizing disk for VM ID: $vmId on node: $pxNode to size: $diskSizeGB"
+    Write-Host "Resizing disk for VM ID $vmId on node $pxNode to $diskSizeGB GB"
 
     $resizeAction = Set-PveNodesQemuResize -PveTicket $ticket -Node $pxNode -VmId $vmId -Disk $diskName -Size "$($diskSizeGB)G"
 
     Write-Debug "Resize action response: $($resizeAction | ConvertTo-Json -Depth 10)"
 
     if ($resizeAction.IsSuccessStatusCode) {
-        $sleepResult = Start-SleepOnPveTask -upid $resizeAction.Response.data -pxNode $pxNode -message "Resizing disk for VM ID $vmId on node $pxNode..."
+        $sleepResult = Start-SleepOnPveTask -upid $resizeAction.Response.data -pxNode $pxNode -message "Waiting for resize task..."
         
         if (-not $sleepResult) {
             Write-Host "Failed to wait for disk resize task to complete."

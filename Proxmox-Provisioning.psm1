@@ -190,7 +190,6 @@ function Copy-PXUbuntuTemplateAndProvision {
     $currentDisk = $newVm.maxdisk / 1GB
 
     if ($currentDisk -lt $vmSettings.DiskSizeGB) {
-        Write-Host "Resizing disk from $currentDisk GB to $($vmSettings.DiskSizeGB) GB"
         $resizeResult = Resize-PxVmDisk -vmId $newVm.vmid -pxNode $newVm.node -diskSizeGB $vmSettings.DiskSizeGB
         if (-not $resizeResult) {
             Write-Error "Could not resize disk";
@@ -242,6 +241,20 @@ function Copy-PXUbuntuTemplateAndProvision {
     Invoke-Expression "packer build $onError -var-file `"$SecretVariableFile`" $extraVarFileArgument $ExtraPackerArguments $sshHostArgument `"$TemplateFile`"" | Out-Host
 
     $success = ($global:LASTEXITCODE -eq 0);
+
+    if (-not $success) {
+        Write-Error "Packer build failed with exit code $($global:LASTEXITCODE).";
+        Remove-PxVmById -vmId $newVm.vmid -pxNode $newVm.node
+        
+        if ($useUnifi) {
+            if ($null -ne $macAddress) {
+                Remove-UnifiClient -macAddress $macAddress.MacAddress
+            }
+        }
+        return @{
+            success = $false
+        }  
+    }
 
     return @{
         success     = $success
