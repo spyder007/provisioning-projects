@@ -29,8 +29,6 @@
         .PARAMETER useUnifi
         If true, the machine will be provisioned using the Unifi module to request VM Network information.
 
-        .EXAMPLE
-        PS> .\Create-NewBuildAgent.ps1 -type ubuntu-2204 -OutputFolder "c:\my\virtualmachines"
     #>
 
 param (

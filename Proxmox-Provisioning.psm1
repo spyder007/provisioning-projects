@@ -10,111 +10,41 @@ function Test-Imports {
 
 function Build-PXUbuntuTemplate {
     <#
-        .SYNOPSIS
-        Create an Ubuntu Proxmox Template using Packer
+    .SYNOPSIS
+        Copies a Proxmox Ubuntu template and provisions it with custom configuration.
 
-        .DESCRIPTION
-        Create an Ubuntu Proxmox Template using Packer.  This script does some specific work to translate passwords
-        that are specific to Ubuntu.
+    .DESCRIPTION
+        This function creates a copy of an existing Ubuntu template in Proxmox VE and provisions it with specified settings such as network configuration, user accounts, and other customizations required for deployment.
 
-        .PARAMETER TemplateFile
-        The location of the Packer template file (*.json or *.hcl)
+    .PARAMETER TemplateName
+        The name of the source Ubuntu template to copy from.
 
-        .PARAMETER HostHttpFolder
-        The locatikon of the HostHTTP Folder.  This folder is mounted for the network installer to read.
+    .PARAMETER NewVMName
+        The name for the new virtual machine that will be created from the template.
 
-        .PARAMETER SecretVariableFile
-        The location of the .pkvars file for this run
+    .PARAMETER VMID
+        The unique identifier for the new virtual machine in Proxmox.
 
-        .PARAMETER packerErrorAction
-        The ErrorAction to use for the Packer Command.  Valid values are "cleanup", "abort", "ask", and "run-cleanup-provisioner".
-        See https://developer.hashicorp.com/packer/docs/commands/build for information on the -on-error option details.
+    .PARAMETER TargetNode
+        The Proxmox node where the new VM will be created.
 
-        .PARAMETER machineName
-        The machine name to use for the final VM
+    .PARAMETER Storage
+        The storage location where the VM disk will be stored.
 
-        .EXAMPLE
-        PS> .\Build-Ubuntu.ps1 ".\templates\ubuntu\ubuntu-2004.json" .\templates\ubuntu\basic\http .\templates\ubuntu\basic\basic.pkvars -machinename ubuntuHost
+    .PARAMETER NetworkConfig
+        Network configuration settings for the provisioned VM.
+
+    .PARAMETER UserConfig
+        User account configuration including username, password, and SSH keys.
+
+    .EXAMPLE
+        Copy-PXUbuntuTemplateAndProvision -TemplateName "ubuntu-20.04-template" -NewVMName "web-server-01" -VMID 101 -TargetNode "pve-node1"
+        
+        Creates a new VM from the Ubuntu template with the specified parameters.
+
+    .NOTES
+        Requires Proxmox VE API access and appropriate permissions to create and modify virtual machines.
     #>
-
-    param (
-        [Parameter(Mandatory = $true, Position = 1)]
-        $TemplateFile,
-        [Parameter(Mandatory = $true, Position = 2)]
-        $HostHttpFolder,
-        [Parameter(Mandatory = $true, Position = 3)]
-        $SecretVariableFile,
-        [Parameter(Position = 4)]
-        [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
-        $packerErrorAction = "cleanup",
-        [Parameter(Position = 6)]
-        [String]
-        $machineName = $null,
-        [string]
-        $ExtraVariableFile = "",
-        [string]
-        $ExtraPackerArguments = ""
-    )
-    Test-Imports $false
-
-    $vars = @{}
-    ## Grab the variables file
-    if (($null -ne $SecretVariableFile) -and (Test-Path $SecretVariableFile)) {
-        $variableLines = Get-Content $SecretVariableFile
-    
-        foreach ($varLine in $variableLines) {
-            if ($varLine -match "(?<var>[^=]*)=(?<value>.*)") {
-                $vars[$matches.var.Trim().ToLower()] = $matches.value.Trim().Trim("`"")
-            }
-        }
-    }
-    else {
-        Write-Error "Variable file is required";
-        return -1;
-    }
-    if ($null -eq $machineName) {
-        $machineName = $vars["vm_name"]
-    }
-
-    ## crypt the password (unix style) so that it can go into the autoinstall folder
-    $cryptedPass = (Write-Output "$($vars["password"])" | openssl passwd -6 -salt "FFFDFSDFSDF" -stdin)
-
-    if (Test-Path $HostHttpFolder) {
-        if (Test-Path "packerhttp") {
-            Remove-Item -Force -Recurse "packerhttp"
-        }
-
-        # Copy the contents
-        mkdir "packerhttp" | Out-Null
-        Copy-Item -Recurse "$HostHttpFolder\*" "packerhttp"
-
-        $user_data_content = Get-Content "packerhttp\user-data"
-        $user_data_content = $user_data_content -replace "{{username}}", "$($vars["username"])"
-        $user_data_content = $user_data_content -replace "{{crypted_password}}", "$cryptedPass"
-        $user_data_content = $user_data_content -replace "{{hostname}}", "$($machineName)"
-        $user_data_content | Set-Content "packerhttp\user-data"
-
-        $httpArgument = "-var `"http=packerhttp`""
-    }
-    else {
-        Write-Warning "Host HTTP Folder not found";
-        $httpArgument = ""
-    }
-
-    $global:LASTEXITCODE = 0
-    $onError = "-on-error=$packerErrorAction"
-
-    if ([string]::IsNullOrWhiteSpace($ExtraVariableFile)) {
-        $extraVarFileArgument = ""
-    }
-    else {
-        $extraVarFileArgument = "-var-file `"$ExtraVariableFile`""
-    }
-
-    Invoke-Expression "packer init `"$TemplateFile`"" | Out-Host
-    Invoke-Expression "packer build $onError -var-file `"$SecretVariableFile`" $extraVarFileArgument $httpArgument -var `"vm_name=$machineName`" $ExtraPackerArguments `"$TemplateFile`"" | Out-Host
-
-    $success = ($global:LASTEXITCODE -eq 0);
 
     return @{
         success     = $success
@@ -122,7 +52,8 @@ function Build-PXUbuntuTemplate {
     }  
 }
 
-function Copy-PXUbuntuTemplate {
+function Copy-PXUbuntuTemplateAndProvision {
+    
     <#
         .SYNOPSIS
         Create an Ubuntu Proxmox VM from a PX VM Template
@@ -131,49 +62,172 @@ function Copy-PXUbuntuTemplate {
         Create an Ubuntu Proxmox VM from a PX VM Template.  This script does some specific work to translate passwords
         that are specific to Ubuntu.
 
+        .PARAMETER vmSettings
+        Settings for the VM to create.  This should be a hashtable with the following keys:
+            - Name: The name of the VM
+            - Description: A description of the VM
+            - Cores: The number of CPU cores to allocate
+            - Memory: The amount of memory in MB to allocate
+            - DiskSizeGB: The size of the disk in GB
+            - ClusterNodeStorage: The storage location for the VM
+            - ClusterNode: The Proxmox node where the VM will be created
+            - BaseVmId: The ID of the base PX VM template to copy from
+            - MinVmId: The minimum VM ID to use for this VM
+            - MaxVmId: The maximum VM ID to use for this VM
+
+            @{
+                Name               = "ubuntuHost"
+                Description        = null
+                Cores              = 2
+                Memory             = 2048
+                DiskSizeGB         = 50
+                ClusterNodeStorage = "vmthin"
+                ClusterNode        = ""
+                BaseVmId           = 0
+                MinVmId            = 200
+                MaxVmId            = 299
+            }
+
         .PARAMETER TemplateFile
         The location of the Packer template file (*.json or *.hcl)
 
-        .PARAMETER HostHttpFolder
-        The locatikon of the HostHTTP Folder.  This folder is mounted for the network installer to read.
-
         .PARAMETER SecretVariableFile
         The location of the .pkvars file for this run
+
+        .PARAMETER ExtraVariableFile
+        An optional file with extra variables to pass to Packer.  This should be a .pkvars file.
+
+        .PARAMETER ExtraPackerArguments
+        An optional string with extra arguments to pass to Packer.  This should be a string with the arguments you want to pass.
+
+        .PARAMETER useUnifi
+        If true, the machine will be provisioned using the Unifi module to request VM Network information.
 
         .PARAMETER packerErrorAction
         The ErrorAction to use for the Packer Command.  Valid values are "cleanup", "abort", "ask", and "run-cleanup-provisioner".
         See https://developer.hashicorp.com/packer/docs/commands/build for information on the -on-error option details.
 
-        .PARAMETER machineName
-        The machine name to use for the final VM
-
-        .EXAMPLE
-        PS> .\Build-Ubuntu.ps1 ".\templates\ubuntu\ubuntu-2004.json" .\templates\ubuntu\basic\http .\templates\ubuntu\basic\basic.pkvars -machinename ubuntuHost
     #>
 
     param (
         [Parameter(Mandatory = $true, Position = 1)]
-        $TemplateFile,
+        $vmSettings,
         [Parameter(Mandatory = $true, Position = 2)]
-        $HostHttpFolder,
+        $TemplateFile,
         [Parameter(Mandatory = $true, Position = 3)]
         $SecretVariableFile,
-        [Parameter(Position = 4)]
-        [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
-        $packerErrorAction = "cleanup",
-        [Parameter(Position = 6)]
-        [String]
-        $machineName = $null,
         [string]
         $ExtraVariableFile = "",
         [string]
         $ExtraPackerArguments = "",
         [bool]
-        $useUnifi = $true
+        $useUnifi = $true,
+        [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
+        $packerErrorAction = "cleanup"
     )
 
     Test-Imports $useUnifi
 
+    $existingVm = Get-PxVmByName $vmSettings.Name
+    if ($null -ne $existingVm) {
+        Write-Error "A VM with the name $($vmSettings.Name) already exists.  Please choose a different name.";
+        return @{
+            success = $false
+        }  
+    }
+
+    if ($null -eq $vmSettings.Description) {
+        $vmDescription = "Px VM $($vmSettings.Name)"
+    }
+    else {
+        $vmDescription = $vmSettings.Description
+    }
+
+    if ($useUnifi) {
+        $macAddress = Invoke-ProvisionUnifiClient -name "$($vmSettings.Name)" -hostname "$($vmSettings.Name)"
+        if ($null -eq $macAddress) {
+            Write-Host "Using random mac address"
+        }
+        else {
+            $macAddress | Format-Table | Out-Host
+            Write-Host "Mac Address = $($macAddress.RawMacAddress)"
+        }
+    }
+    else {
+        $macAddress = $null
+    }
+
+    $success = Copy-PxVmTemplate -pxNode $vmSettings.ClusterNode -vmId $vmSettings.BaseVmId -name $vmSettings.Name -vmDescription $vmDescription -newIdMin $vmSettings.MinVmId -newIdMax $vmSettings.MaxVmId -macAddress $macAddress.MacAddress -cpuCores $vmSettings.cores -memory $vmSettings.memory -vmStorage $vmSettings.ClusterNodeStorage -startVm $false
+
+    $newVm = Get-PxVmByName $vmSettings.Name
+    if (-not $success -or $null -eq $newVm) {
+        Write-Error "Could not copy PX VM Template";
+        if ($useUnifi) {
+            if ($null -ne $macAddress) {
+                Remove-UnifiClient -macAddress $macAddress.MacAddress
+            }
+        }
+        return @{
+            success = $false
+        }  
+    }
+    
+    if ($newVm.maxdisk -eq 0) {
+        Write-Error "The PX VM Template did not have a disk.  Cannot continue.";
+        if ($useUnifi) {
+            if ($null -ne $macAddress) {
+                Remove-UnifiClient -macAddress $macAddress.MacAddress
+            }
+        }
+        return @{
+            success = $false
+        }  
+    }
+
+    Write-Debug "New Vm $($newVm | ConvertTo-Json -Depth 5)";
+
+    # Check SCSI disk size and resize if needed
+    $currentDisk = $newVm.maxdisk / 1GB
+
+    if ($currentDisk -lt $vmSettings.DiskSizeGB) {
+        Write-Host "Resizing disk from $currentDisk GB to $($vmSettings.DiskSizeGB) GB"
+        $resizeResult = Resize-PxVmDisk -vmId $newVm.vmid -pxNode $newVm.node -diskSizeGB $vmSettings.DiskSizeGB
+        if (-not $resizeResult) {
+            Write-Error "Could not resize disk";
+            if ($useUnifi) {
+                if ($null -ne $macAddress) {
+                    Remove-UnifiClient -macAddress $macAddress.MacAddress
+                }
+            }
+            return @{
+                success = $false
+            }  
+        }
+    }
+
+    Start-PxVm $newVm.name
+
+    $qemuAgentStarted = Wait-QemuAgent -vmId $newVm.vmid -pxNode $newVm.node
+
+    if (-not $qemuAgentStarted) {
+        Write-Error "QEMU Agent did not start.  Cannot continue.";
+        if ($useUnifi) {
+            if ($null -ne $macAddress) {
+                Remove-UnifiClient -macAddress $macAddress.MacAddress
+            }
+        }
+        return @{
+            success = $false
+        }  
+    }
+
+    $ipaddress = Get-PxVmIpAddress -vmId $newVm.vmid -pxNode $newVm.node
+
+    Write-Host "New VM $($newVm.name) started with IP address $ipaddress"
+
+    $sshHostArgument = "-var `"ssh_host=$ipaddress`""
+
+    # Execute the Packer build
     $global:LASTEXITCODE = 0
     $onError = "-on-error=$packerErrorAction"
 
@@ -185,7 +239,7 @@ function Copy-PXUbuntuTemplate {
     }
 
     Invoke-Expression "packer init `"$TemplateFile`"" | Out-Host
-    Invoke-Expression "packer build $onError -var-file `"$SecretVariableFile`" $extraVarFileArgument $httpArgument -var `"vm_name=$machineName`" $ExtraPackerArguments `"$TemplateFile`"" | Out-Host
+    Invoke-Expression "packer build $onError -var-file `"$SecretVariableFile`" $extraVarFileArgument $ExtraPackerArguments $sshHostArgument `"$TemplateFile`"" | Out-Host
 
     $success = ($global:LASTEXITCODE -eq 0);
 

@@ -27,7 +27,7 @@ param (
     [bool] $useUnifi = $true
 )
 
-Import-Module ./Proxmox-Provisioning.psm1
+Import-Module ./HyperV-Provisioning.psm1
 
 # Turn the string into a base64 encoded string
 $bytes = [System.Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f ($devOpsUsername, $devOpsPat)))
@@ -66,7 +66,7 @@ if ($vms.Count -gt 1) {
             $url = "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($devOpsRecord.id)?api-version=7.2-preview.1"
             Write-Debug "Url: $url"
             Invoke-RestMethod -Uri "$url" -Method DELETE -Headers $headers
-            Remove-PxVm -machineName $($_.Name) -useUnifi $useUnifi
+            Remove-HyperVVm -machinename $($_.Name)
         }
 }
 else {

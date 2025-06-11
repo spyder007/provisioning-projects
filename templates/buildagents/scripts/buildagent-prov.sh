@@ -1,10 +1,10 @@
 #/bin/bash
-  
+
+sudo parted -s --fix -a opt /dev/sda "resizepart 3 100%"
+sudo pvresize /dev/sda3
 sudo lvextend -l+100%FREE $(sudo lvdisplay -C -o "lv_path" --noheadings)
 sudo resize2fs $(df / --output=source | sed -e /Filesystem/d)
-sudo apt update
-sudo apt upgrade -y
-sudo apt install -y linux-cloud-tools-virtual
-mkdir ~/.ssh
-cp /imagegeneration/authorized_keys ~/.ssh/
+
+#mkdir ~/.ssh
+#cp /imagegeneration/authorized_keys ~/.ssh/
 
