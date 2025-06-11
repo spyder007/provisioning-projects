@@ -33,6 +33,22 @@ param (
     [string] $extraVariableFile = ".\templates\buildagents\buildagent.pkrvars.hcl"
 )
 
+$templateFile = Join-Path -Path $PSScriptRoot -ChildPath ".\templates\buildagents\null.pkr.hcl"
+if (-not (Test-Path $settingsFile)) {
+    Write-Error "Settings file not found: $settingsFile"
+    return
+}
+
+if (-not (Test-Path $secretVariableFile)) {
+    Write-Error "Secret variable file not found: $secretVariableFile"
+    return
+}
+
+if (-not (Test-Path $extraVariableFile)) {
+    Write-Error "Extra variable file not found: $extraVariableFile"
+    return
+}
+
 Import-Module ./Proxmox-Provisioning.psm1 -Force
 
 ## Generate agent name
@@ -51,5 +67,5 @@ $vmSettings.Description = "$($vmSettings.Description) $agentDate"
 Write-Host "Creating new agent: $($vmSettings.Name)"
 
 ## Create and Provision agent
-Copy-PXUbuntuTemplateAndProvision $vmSettings ".\templates\buildagents\null.pkr.hcl" "$secretVariableFile" -ExtraVariableFile "$extraVariablFile" -packerErrorAction "$packerErrorAction"
+Copy-PXUbuntuTemplateAndProvision $vmSettings $templateFile "$secretVariableFile" -ExtraVariableFile "$extraVariablFile" -packerErrorAction "$packerErrorAction"
 
