@@ -73,7 +73,6 @@ function Copy-PxVmTemplate {
     Write-Host "Copying Proxmox VM Template: $name"
     $createAction = New-PveNodesQemuClone -PveTicket $ticket -Description $vmDescription -Name $name -newid $newId -node $pxNode -VmId $vmId -Full $fullClone -Storage $vmStorage
 
-    $finished = $false
     $upId = $createAction.Response.data;
 
     if (-not $upId) {
@@ -110,6 +109,32 @@ function Copy-PxVmTemplate {
         Start-PxVm -name $name
     }
     return $true
+}
+
+Function Set-PxVmTagsById {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$vmId,
+        [Parameter(Mandatory = $true)]
+        [string]$pxNode,
+        [Parameter(Mandatory = $true)]
+        [string[]]$tags
+    )
+
+    $ticket = Invoke-ProxmoxLogin
+
+    Write-Host "Setting tags for VM ID: $vmId on node: $pxNode"
+
+    $response = Set-PveNodesQemuConfig -PveTicket $ticket -Node $pxNode -VmId $vmId -Tags ($tags -join ",")
+
+    if ($response.IsSuccessStatusCode) {
+        Write-Host "Tags set successfully for VM ID: $vmId"
+        return $true
+    }
+    else {
+        Write-Host "Failed to set tags for VM ID: $vmId. Error: $($response | ConvertTo-Json -Depth 10)"
+        return $false
+    }
 }
 
 Function Start-PxVm {
