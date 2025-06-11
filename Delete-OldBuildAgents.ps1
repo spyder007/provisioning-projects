@@ -66,7 +66,8 @@ if ($vms.Count -gt 1) {
             $url = "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($devOpsRecord.id)?api-version=7.2-preview.1"
             Write-Debug "Url: $url"
             Invoke-RestMethod -Uri "$url" -Method DELETE -Headers $headers
-            Remove-PxVm -machineName $($_.Name) -useUnifi $useUnifi
+            Set-PxVmTags -machineName $($_.Name) -tags @("delete-build-agent")
+            #Remove-PxVm -machineName $($_.Name) -useUnifi $useUnifi
         }
 }
 else {

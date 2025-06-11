@@ -248,7 +248,25 @@ function Copy-PXUbuntuTemplateAndProvision {
         machineName = "$machineName"
     }  
 }
+
+Function Set-PxVmTags {
+    param (
+        [Parameter(Mandatory = $true)]
+        $machineName,
+        [Parameter(Mandatory = $true)]
+        [string[]] $tags
+    )
+    Test-Imports $false
     
+    $vm = Get-PxVmByName $machineName
+
+    if ($null -eq $vm -or $vm.name -ne $machineName) {
+        Write-Error "$machineName not found"
+        return -1
+    }
+
+    Set-PxVmTagsById -vmId $vm.vmid -pxNode $vm.node -tags $tags
+}
 
 function Remove-PxVm {
     param (
