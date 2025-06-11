@@ -1,7 +1,7 @@
 packer {
   required_plugins {}
-  }
 }
+
 
 variable "ssh_host" {
   type    = string
