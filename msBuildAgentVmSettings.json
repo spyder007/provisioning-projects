@@ -1,0 +1,12 @@
+{
+    "Name": "WillBeReplaced",
+    "Description": "Azure DevOps Build Agent",
+    "Cores": 4,
+    "Memory": 8192,
+    "DiskSizeGb": 120,
+    "ClusterNodeStorage": "pxhp-thin-01",
+    "ClusterNode": "pxhp",
+    "BaseVmId": 9999,
+    "MinVmId": 30000,
+    "MaxVmId": 30100
+}

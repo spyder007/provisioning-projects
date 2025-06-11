@@ -50,7 +50,9 @@ function Copy-PxVmTemplate {
         [bool]
         $fullClone = $true,
         [string]
-        $vmStorage = "vmthin"
+        $vmStorage = "vmthin",
+        [bool]
+        $startVm = $true
     )
     
     $ticket = Invoke-ProxmoxLogin
@@ -69,7 +71,7 @@ function Copy-PxVmTemplate {
     }
     
     Write-Host "Copying Proxmox VM Template: $name"
-    $createAction =  New-PveNodesQemuClone -PveTicket $ticket -Description $vmDescription -Name $name -newid $newId -node $pxNode -VmId $vmId -Full $fullClone -Storage $vmStorage
+    $createAction = New-PveNodesQemuClone -PveTicket $ticket -Description $vmDescription -Name $name -newid $newId -node $pxNode -VmId $vmId -Full $fullClone -Storage $vmStorage
 
     $finished = $false
     $upId = $createAction.Response.data;
@@ -80,22 +82,17 @@ function Copy-PxVmTemplate {
         return $false
     }
 
-    Write-Host "Checking status of VM creation with UPID: $upId"
-    while (-not $finished) {
-        Start-Sleep -Seconds 5
-        $status = Get-PveNodesTasksStatus -PveTicket $script:pv_ticket -node $pxNode -upid $upId
-        if ($status.Response.data.status -eq "stopped") {
-            Write-Host "VM creation finished successfully."
-            $finished = $true
-        } elseif ($status.Response.data.status -eq "running") {
-            Write-Host "VM creation is still running..."
-        } else {
-            Write-Host "VM creation failed with status: $($status.Response.data.status)"
-            Write-Host ($status | ConvertTo-Json -Depth 10)
-            return $false
-        }
+    $sleepResult = Start-SleepOnPveTask -upid $upId -pxNode $pxNode -message "Waiting for VM creation..."
+
+    if (-not $sleepResult) {
+        Write-Host "Failed to wait for VM creation task to complete."
+        return $false
     }
 
+    if ($null -eq $macAddress) {
+        Write-Host "No MAC address provided, generating a new one for VM ID: $newId"
+        $macAddress = "02:00:" + (Get-Random -Minimum 0 -Maximum 255).ToString("X2") + ":" + (Get-Random -Minimum 0 -Maximum 255).ToString("X2") + ":" + (Get-Random -Minimum 0 -Maximum 255).ToString("X2")
+    }
 
     $netConfig = @{ 0 = "virtio=$macAddress,bridge=vmbr0" }
     $ipconfig = @{ 0 = "ip=dhcp,ip6=dhcp" }
@@ -109,14 +106,33 @@ function Copy-PxVmTemplate {
         return $false
     }
 
-    Write-Host "Starting Proxmox VM: $name"
-    $start = New-PveNodesQemuStatusStart -PveTicket $ticket -Node $pxNode -VmId $newId
+    if ($startVm) {
+        Start-PxVm -name $name
+    }
+    return $true
+}
+
+Function Start-PxVm {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$name
+    )
+
+    $ticket = Invoke-ProxmoxLogin
+
+    $vm = Get-PxVmByName -vmName $name
+    if (-not $vm) {
+        Write-Host "VM with name $name not found."
+        return $false
+    }
+
+    Write-Host "Starting Proxmox VM: $($vm.name)"
+    $start = New-PveNodesQemuStatusStart -PveTicket $ticket -Node $vm.node -VmId $vm.vmid
     if (-not $start.IsSuccessStatusCode) {
         Write-Host "Failed to start VM. Please check the parameters and try again."
         Write-Host ($start | ConvertTo-Json -Depth 10)
         return $false
     }
-    return $true
 }
 
 Function Get-PxVms {
@@ -160,8 +176,9 @@ Function Get-PxVmByName {
 
     if ($vm) {
         return $vm
-    } else {
-        Write-Host "No VM found with name: $vmName on node: $pxNode"
+    }
+    else {
+        Write-Debug "No VM found with name: $vmName on node: $pxNode"
         return $null
     }
 }
@@ -182,14 +199,108 @@ Function Get-PxVmMacAddress {
         if ($data -and $data.net0) {
             $macAddress = $data.net0 -replace 'virtio=', '' -replace ',bridge=.*', ''
             return $macAddress
-        } else {
+        }
+        else {
             Write-Host "No MAC address found for VM ID: $vmId on node: $pxNode"
             return $null
         }
-    } else {
+    }
+    else {
         Write-Host "Failed to retrieve VM configuration for VM ID: $vmId on node: $pxNode"
         return $null
     }
+}
+
+Function Get-PxVmIpAddress {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$vmId,
+        [Parameter(Mandatory = $true)]
+        [string]$pxNode
+    )
+
+    $ticket = Invoke-ProxmoxLogin
+
+    Write-Host "Retrieving IP address for VM ID: $vmId on node: $pxNode"
+
+    $response = Get-PveNodesQemuAgentNetworkGetInterfaces -PveTicket $ticket -Node $pxNode -VmId $vmId
+
+    if ($response.IsSuccessStatusCode) {
+        $ipaddress = $response.Response.data.result | Where-Object { $_.name -eq "eth0" } | ForEach-Object { $_.'ip-addresses' } | Where-Object { $_.'ip-address-type' -eq "ipv4" } | ForEach-Object { $_."ip-address" }
+        if ($null -eq $ipaddress) {
+            Write-Host "No MAC address found for VM ID: $vmId on node: $pxNode"
+            return $null
+        }
+        return $ipaddress
+    }
+    else {
+        Write-Host "Failed to retrieve network interfaces for VM ID: $vmId on node: $pxNode"
+        return $null
+    }
+}
+
+Function Resize-PxVmDisk {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$vmId,
+        [Parameter(Mandatory = $true)]
+        [string]$pxNode,
+        [Parameter(Mandatory = $true)]
+        [int]$diskSizeGB,
+        [string]$diskName = "scsi0" # Default disk name, can be changed if needed
+    )
+
+    $ticket = Invoke-ProxmoxLogin
+
+    Write-Host "Resizing disk for VM ID: $vmId on node: $pxNode to size: $diskSizeGB"
+
+    $resizeAction = Set-PveNodesQemuResize -PveTicket $ticket -Node $pxNode -VmId $vmId -Disk $diskName -Size "$($diskSizeGB)G"
+
+    Write-Debug "Resize action response: $($resizeAction | ConvertTo-Json -Depth 10)"
+
+    if ($resizeAction.IsSuccessStatusCode) {
+        $sleepResult = Start-SleepOnPveTask -upid $resizeAction.Response.data -pxNode $pxNode -message "Resizing disk for VM ID $vmId on node $pxNode..."
+        
+        if (-not $sleepResult) {
+            Write-Host "Failed to wait for disk resize task to complete."
+            return $false
+        }
+        return $true
+    }
+    else {
+        Write-Host "Failed to resize disk. Error: $($resizeAction | ConvertTo-Json -Depth 10)"
+        return $false
+    }
+}
+
+Function Wait-QemuAgent {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$vmId,
+        [Parameter(Mandatory = $true)]
+        [string]$pxNode,
+        [int]$timeoutSeconds = (60 * 10) # Default timeout of 10 minutes
+    )
+
+    $ticket = Invoke-ProxmoxLogin
+
+    Write-Host "Waiting for QEMU agent to be ready for VM ID: $vmId on node: $pxNode.." -NoNewline
+
+    $startTime = Get-Date
+    while ((Get-Date) -lt $startTime.AddSeconds($timeoutSeconds)) {
+        $response = Get-PveNodesQemuAgentInfo -PveTicket $ticket -Node $pxNode -VmId $vmId
+
+        if ($response.IsSuccessStatusCode) {
+            Write-Host "ready."
+            return $true
+        }
+
+        Write-Host "." -NoNewline
+        Start-Sleep -Seconds 15
+    }
+
+    Write-Host "Timeout reached, QEMU agent is still not ready."
+    return $false
 }
 
 Function Remove-PxVmById {
@@ -201,7 +312,6 @@ Function Remove-PxVmById {
     )
 
     $ticket = Invoke-ProxmoxLogin
-    Write-Host "Stopping VM $($vmId)"
     $stopRequest = Stop-PveVm -PveTicket $ticket -VmIdOrName $vmId
 
     if (-not $stopRequest.IsSuccessStatusCode) {
@@ -209,7 +319,7 @@ Function Remove-PxVmById {
         return $false
     }
 
-    $taskWait = Start-SleepOnPveTask -upid $stopRequest.Response.data -pxNode $pxNode
+    $taskWait = Start-SleepOnPveTask -upid $stopRequest.Response.data -pxNode $pxNode -message "Stopping VM $($vmId)..."
 
     if (-not $taskWait) {
         Write-Host "Failed to wait for VM stop task to complete."
@@ -222,7 +332,8 @@ Function Remove-PxVmById {
     if ($response.IsSuccessStatusCode) {
         Write-Host "VM with ID: $vmId removed successfully."
         return $true
-    } else {
+    }
+    else {
         Write-Host "Failed to remove VM with ID: $vmId. Error: $($response | ConvertTo-Json -Depth 10)"
         return $false
     }
@@ -234,21 +345,26 @@ Function Start-SleepOnPveTask {
         [string]$upid,
         [Parameter(Mandatory = $true)]
         [string]$pxNode,
+        [string]$message = "Waiting for task to complete...",
         [int]$interval = 15
     )
 
     $ticket = Invoke-ProxmoxLogin
 
-    Write-Host "Checking status of task with UPID: $upid"
+    Write-Debug "Checking status of task with UPID: $upid"
+    Write-Host $message -NoNewline
     while ($true) {
         Start-Sleep -Seconds $interval
         $status = Get-PveNodesTasksStatus -PveTicket $ticket -node $pxNode -upid $upid
         if ($status.Response.data.status -eq "stopped") {
-            Write-Host "Task finished successfully."
+            Write-Host "completed."
             return $true
-        } elseif ($status.Response.data.status -eq "running") {
-            Write-Host "Task is still running..."
-        } else {
+        }
+        elseif ($status.Response.data.status -eq "running") {
+            Write-Host "." -NoNewline
+        }
+        else {
+            Write-Host "failed."
             Write-Host "Task failed with status: $($status | ConvertTo-Json -Depth 10)"
             return $false
         }
@@ -282,13 +398,13 @@ Function Get-ProxmoxSettings {
     if ([string]::IsNullOrWhiteSpace($apiToken)) {
         $apiToken = [System.Environment]::GetEnvironmentVariable('PX_API_TOKEN', [System.EnvironmentVariableTarget]::User)
     }
-    if ([string]::IsNullOrWhiteSpace($apiToken)){
+    if ([string]::IsNullOrWhiteSpace($apiToken)) {
         $apiToken = ""
     }
 
     return @{
         hostsAndPorts = "$hostsAndPorts"
-        apiToken = "$apiToken"
+        apiToken      = "$apiToken"
     }
 }
 
