@@ -111,6 +111,36 @@ function Copy-PxVmTemplate {
     return $true
 }
 
+Function Get-PxVmTagsById {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$vmId,
+        [Parameter(Mandatory = $true)]
+        [string]$pxNode
+    )
+
+    $ticket = Invoke-ProxmoxLogin
+
+    Write-Host "Retrieving tags for VM ID: $vmId on node: $pxNode"
+
+    $response = Get-PveNodesQemuConfig -PveTicket $ticket -Node $pxNode -VmId $vmId
+
+    if ($response.IsSuccessStatusCode) {
+        $data = $response.Response.data
+        if ($data -and $data.tags) {
+            return $data.tags -split ","
+        }
+        else {
+            Write-Host "No tags found for VM ID: $vmId on node: $pxNode"
+            return @()
+        }
+    }
+    else {
+        Write-Host "Failed to retrieve VM configuration for VM ID: $vmId on node: $pxNode"
+        return @()
+    }
+}
+
 Function Set-PxVmTagsById {
     param(
         [Parameter(Mandatory = $true)]
@@ -191,7 +221,8 @@ Function Get-PxVms {
 Function Get-PxVmByName {
     param(
         [Parameter(Mandatory = $true)]
-        [string]$vmName
+        [string]$vmName,
+        [switch]$includeTags = $false
     )
 
     $ticket = Invoke-ProxmoxLogin
@@ -200,6 +231,13 @@ Function Get-PxVmByName {
     $vm = $vms | Where-Object { $_.name -like $vmName }
 
     if ($vm) {
+
+        foreach ($v in $vm) {
+            if ($includeTags) {
+                $v | Add-Member -MemberType NoteProperty -Name "tags" -Value (Get-PxVmTagsById -vmId $v.vmid -pxNode $v.node) -Force
+            }
+        }
+
         return $vm
     }
     else {
