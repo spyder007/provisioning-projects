@@ -62,7 +62,7 @@ if ($vms.Count -gt 0) {
             
         $devOpsRecord = $agentNames | Where-Object { $vm.name -eq $machineName }
         $url = "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($devOpsRecord.id)?api-version=7.2-preview.1"
-        Write-Debug "Url: $url"
+        Write-Host "Url: $url"
         Invoke-RestMethod -Uri "$url" -Method DELETE -Headers $headers
 
         Write-Host "Removing $($machineName) from Proxmox"
