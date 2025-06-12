@@ -64,8 +64,11 @@ if ($vms.Count -gt 1) {
         Write-Host "Disabling $($machineName)"
             
         $devOpsRecord = $agentNames | Where-Object { $_.name -eq $machineName }
-            
+        
+        Write-Debug (ConvertTo-Json $devOpsRecord -Depth 10)
+
         $patchBody = @{
+            id = $devOpsRecord.id
             enabled = $false
         } | ConvertTo-Json
 
