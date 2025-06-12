@@ -49,7 +49,7 @@ $poolId = $poolSearch.value.id
 
 $agents = Invoke-RestMethod -Uri "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents" -Headers $headers
 
-$agentNames = $agents.value | Select-Object -Property name, id
+$agentNames = $agents.value | Where-Object { $_.enabled -eq $true } | Select-Object -Property name, id
 
 $vms = Get-PxVmByName agt-ubt-* | Where-Object { $_.name -in $agentNames.name }
 
