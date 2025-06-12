@@ -28,6 +28,7 @@ param (
 )
 
 Import-Module ./Proxmox-Provisioning.psm1
+Import-Module ./Proxmox-Wrapper.psm1
 
 # Turn the string into a base64 encoded string
 $bytes = [System.Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f ($devOpsUsername, $devOpsPat)))
@@ -52,7 +53,7 @@ $agentNames = $agents.value | Select-Object -Property name, id
 
 $vms = Get-PxVmByName agt-ubt-* -includeTags | Where-Object { $_.tags -contains "delete-build-agent" }
 
-if ($vms.Count -gt 1) {
+if ($vms.Count -gt 0) {
     Write-Host "Removing old agents"
 
     $vms  | Select-Object -Property name, @{ Name="Date"; Expression={[DateTime]::ParseExact($_.Name.Replace("agt-ubt-", ""), 'yyMMdd', $null)}} 
