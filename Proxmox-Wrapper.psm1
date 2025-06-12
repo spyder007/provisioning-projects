@@ -197,7 +197,7 @@ Function Get-PxVmByName {
     $ticket = Invoke-ProxmoxLogin
     $vms = Get-PxVms -PveTicket $ticket
 
-    $vm = $vms | Where-Object { $_.name -eq $vmName }
+    $vm = $vms | Where-Object { $_.name -like $vmName }
 
     if ($vm) {
         return $vm
