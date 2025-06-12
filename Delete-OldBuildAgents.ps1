@@ -56,21 +56,18 @@ $vms = Get-PxVmByName agt-ubt-* -includeTags | Where-Object { $_.tags -contains 
 if ($vms.Count -gt 0) {
     Write-Host "Removing old agents"
 
-    $vms  | Select-Object -Property name, @{ Name="Date"; Expression={[DateTime]::ParseExact($_.Name.Replace("agt-ubt-", ""), 'yyMMdd', $null)}} 
-        | sort-object -property date | Select-Object -First ($vms.Count - 1) 
-        | ForEach-Object {
+    foreach ($vm in $vms) {
+        $machineName = $vm.Name
+        Write-Host "Removing $($machineName) from Azure DevOps Pool $($devOpsPool)"
             
-            $machineName = $_.Name
-            Write-Host "Removing $($machineName) from Azure DevOps Pool $($devOpsPool)"
-            
-            $devOpsRecord = $agentNames | Where-Object { $_.name -eq $machineName }
-            $url = "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($devOpsRecord.id)?api-version=7.2-preview.1"
-            Write-Debug "Url: $url"
-            Invoke-RestMethod -Uri "$url" -Method DELETE -Headers $headers
+        $devOpsRecord = $agentNames | Where-Object { $vm.name -eq $machineName }
+        $url = "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($devOpsRecord.id)?api-version=7.2-preview.1"
+        Write-Debug "Url: $url"
+        Invoke-RestMethod -Uri "$url" -Method DELETE -Headers $headers
 
-            Write-Host "Removing $($machineName) from Proxmox"
-            Remove-PxVm -machineName $($_.Name) -useUnifi $useUnifi
-        }
+        Write-Host "Removing $($machineName) from Proxmox"
+        Remove-PxVm -machineName $($vm.Name) -useUnifi $useUnifi
+    }
 }
 else {
     Write-Host "No old agents to remove"
