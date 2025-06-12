@@ -35,6 +35,7 @@ $token = [System.Convert]::ToBase64String($bytes)
 # Define a basic 'Authorization' header with the token
 $headers = @{
     Authorization = "Basic {0}" -f ($token)
+
 }
 
 $poolSearch = Invoke-RestMethod -Uri "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools?poolName=$($devOpsPool)" -Headers $headers
@@ -55,24 +56,29 @@ $vms = Get-PxVmByName agt-ubt-* | Where-Object { $_.name -in $agentNames.name }
 if ($vms.Count -gt 1) {
     Write-Host "Disabling old agents"
 
-    $vms  | Select-Object -Property name, @{ Name="Date"; Expression={[DateTime]::ParseExact($_.Name.Replace("agt-ubt-", ""), 'yyMMdd', $null)}} 
-        | sort-object -property date | Select-Object -First ($vms.Count - 1) 
-        | ForEach-Object {
+    $vms  | Select-Object -Property name, @{ Name = "Date"; Expression = { [DateTime]::ParseExact($_.Name.Replace("agt-ubt-", ""), 'yyMMdd', $null) } } 
+    | sort-object -property date | Select-Object -First ($vms.Count - 1) 
+    | ForEach-Object {
             
-            $machineName = $_.Name
-            Write-Host "Disabling $($machineName)"
+        $machineName = $_.Name
+        Write-Host "Disabling $($machineName)"
             
-            $devOpsRecord = $agentNames | Where-Object { $_.name -eq $machineName }
+        $devOpsRecord = $agentNames | Where-Object { $_.name -eq $machineName }
             
-            $patchBody = @{
-                enabled = $false
-            } | ConvertTo-Json
+        $patchBody = @{
+            enabled = $false
+        } | ConvertTo-Json
 
-            $url = "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($devOpsRecord.id)?api-version=7.2-preview.1"
-            Write-Debug "Url: $url"
-            Invoke-RestMethod -Uri "$url" -Method PATCH -Headers $headers -Body $patchBody
-            Set-PxVmTags -machineName $($_.Name) -tags @("delete-build-agent")
+        $url = "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($devOpsRecord.id)?api-version=7.2-preview.1"
+        Write-Debug "Url: $url"
+        $headers = @{
+            Authorization = "Basic {0}" -f ($token)
+            "Content-Type" = "application/json"
         }
+
+        Invoke-RestMethod -Uri "$url" -Method PATCH -Headers $headers -Body $patchBody
+        Set-PxVmTags -machineName $($_.Name) -tags @("delete-build-agent")
+    }
 }
 else {
     Write-Host "No old agents to disable"
