@@ -57,10 +57,10 @@ if ($vms.Count -gt 0) {
     Write-Host "Removing old agents"
 
     foreach ($vm in $vms) {
-        $machineName = $vm.Name
+        $machineName = $vm.name
         Write-Host "Removing $($machineName) from Azure DevOps Pool $($devOpsPool)"
             
-        $devOpsRecord = $agentNames | Where-Object { $vm.name -eq $machineName }
+        $devOpsRecord = $agentNames | Where-Object { $_.name -eq $machineName }
         $url = "https://dev.azure.com/$($devOpsOrg)/_apis/distributedtask/pools/$($poolId)/agents/$($devOpsRecord.id)?api-version=7.2-preview.1"
         Write-Host "Url: $url"
         Invoke-RestMethod -Uri "$url" -Method DELETE -Headers $headers
