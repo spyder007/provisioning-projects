@@ -1,3 +1,5 @@
 node-name: nodeName
 server: serverUrl
 token: token
+
+ingress-controller: none

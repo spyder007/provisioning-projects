@@ -12,16 +12,24 @@ autoinstall:
         ens18:
           dhcp4: yes
           dhcp-identifier: mac
+          nameservers:
+            addresses: [8.8.8.8, 1.1.1.1]
   ssh:
     install-server: true
   packages:
-    - linux-cloud-tools-virtual
-    - qemu-guest-agent
     - apt-transport-https
     - ca-certificates
     - curl
+    
   early-commands:
+    - echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+    - echo "nameserver 1.1.1.1" >> /etc/resolv.conf
     - apt update
   late-commands:
+    - echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+    - echo "nameserver 1.1.1.1" >> /etc/resolv.conf
+    - curtin in-target -- apt-get update
+    - curtin in-target -- apt-get install -y qemu-guest-agent
+    - curtin in-target -- systemctl enable qemu-guest-agent
     - echo '{{username}} ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/{{username}}
 

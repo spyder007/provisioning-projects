@@ -221,7 +221,7 @@ build {
   execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
   scripts          = [
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-actions-cache.sh",
-                      "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-runner-package.sh",
+
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-apt-common.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-azcopy.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-azure-cli.sh",
@@ -243,8 +243,8 @@ build {
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-git-lfs.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-github-cli.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-google-chrome.sh",
-		      "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-google-cloud-cli.sh",
-		      "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-haskell.sh",
+		                  "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-google-cloud-cli.sh",
+		                  "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-haskell.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-java-tools.sh",
 
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-kubernetes-tools.sh",
@@ -252,7 +252,7 @@ build {
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-kotlin.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-mysql.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-nginx.sh",
-		      "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-nvm.sh",
+		                  "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-nvm.sh",
 
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-nodejs.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-bazel.sh",
@@ -272,7 +272,7 @@ build {
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-pypy.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-python.sh",
                       "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-zstd.sh",
-		      "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-ninja.sh",
+		                  "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/install-ninja.sh",
                       "${path.root}/scripts/install-opentofu.sh"
                       ]
   }
@@ -306,6 +306,10 @@ build {
     execute_command   = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
     scripts           = ["${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/configure-snap.sh"]
   }
+  provisioner "shell" {
+    execute_command = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
+    script          = "${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/list-dpkg.sh"
+  }
 
   provisioner "shell" {
     execute_command   = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
@@ -315,7 +319,7 @@ build {
 
   provisioner "shell" {
     execute_command     = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    pause_before        = "1m0s"
+    pause_before        = "5m0s"
     scripts             = ["${path.root}/lib/virtual-environments/images/ubuntu/scripts/build/cleanup.sh"]
     start_retry_timeout = "10m"
   }
@@ -335,9 +339,6 @@ build {
   provisioner "shell" {
     environment_vars = ["MS_AGENT_URL=${var.ms_agent_url}", "MS_AGENT_FILENAME=${var.ms_agent_filename}", "MS_AGENT_PAT=${var.ms_agent_pat}", "MS_AGENT_ORG_URL=${var.ms_agent_org_url}", "MS_AGENT_POOL_NAME=${var.ms_agent_pool}"]
     scripts          = ["${path.root}/scripts/configure-buildagent.sh"]
-  }
-  provisioner "shell" {
-    scripts          = ["${path.root}/scripts/configure-grafana-agent.sh"]
   }
 
   provisioner "shell" {

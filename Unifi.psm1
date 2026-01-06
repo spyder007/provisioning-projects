@@ -111,14 +111,13 @@ Function Get-AuthApiEnvironmentVariables {
 
 Function Set-UnifiEnvironmentVariables {
     param (
-        $provisionUrl,
-        $provisionGroup
+        $provisionUrl
     )
-    $env:API_PROVISION_URL = "$provisionUrl"
-    $env:API_PROVISION_GROUP = "$provisionGroup"
 
-    [System.Environment]::SetEnvironmentVariable('API_PROVISION_URL', "$provisionUrl", [System.EnvironmentVariableTarget]::User)
-    [System.Environment]::SetEnvironmentVariable('API_PROVISION_GROUP', "$provisionGroup", [System.EnvironmentVariableTarget]::User)
+    if (-not [System.String]::IsNullOrWhiteSpace($provisionUrl)) {
+        $env:API_PROVISION_URL = "$provisionUrl"
+        [System.Environment]::SetEnvironmentVariable('API_PROVISION_URL', "$provisionUrl", [System.EnvironmentVariableTarget]::User)
+    }
 }
 
 Function Get-UnifiEnvironmentVariables {
@@ -129,14 +128,8 @@ Function Get-UnifiEnvironmentVariables {
         $apiUrl = [System.Environment]::GetEnvironmentVariable('API_PROVISION_URL', [System.EnvironmentVariableTarget]::User)
     }
 
-    $provisionGroup = $env:API_PROVISION_GROUP
-    if ($null -eq $provisionGroup) {
-        $provisionGroup = [System.Environment]::GetEnvironmentVariable('API_PROVISION_GROUP', [System.EnvironmentVariableTarget]::User)
-    }
-
     return @{
         unifiUrl = "$apiUrl"
-        provisionGroup = "$provisionGroup"
     }
 }
 
@@ -148,7 +141,7 @@ Function Invoke-ProvisionUnifiClient {
         $hostName,
         $staticIp = $true,
         $syncDns = $true,
-        $network = "Default"
+        $network = "Lab"
     )
 
     $unifiVars = Get-UnifiEnvironmentVariables
@@ -158,15 +151,12 @@ Function Invoke-ProvisionUnifiClient {
         return $null
     }
 
-    $provisionGroup = $unifiVars.provisionGroup
-
     $authToken = Get-AuthToken -scope "unifi.ipmanager"
 
     $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
     $headers.Add("Authorization", "Bearer $authToken")
 
     $body = @{
-        group     = "$provisionGroup"
         name      = "$name"
         hostName  = "$hostName"
         static_ip = $staticIp
@@ -239,13 +229,13 @@ function Get-ClusterDns {
         return $null
     }
 
+    
     $authToken = Get-AuthToken -scope "unifi.ipmanager"
-
     $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
     $headers.Add("Authorization", "Bearer $authToken")
 
     $apiUrl = $apiUrl.TrimEnd("/")
-
+    Write-Host "Retrieving clusterdns"
     $result = Invoke-RestMethod "$apiUrl/clusterdns/$($clusterName)?zone=$dnsZone" -headers $headers -method Get
     
     if ($false -eq $result.Success) {
@@ -339,4 +329,40 @@ Function Remove-UnifiClient {
         return $false
     }
     return $true
+}
+
+function Get-UnifiNetworkInfo {
+    param(
+        [Parameter(Mandatory = $true)]
+        $networkName
+    )
+    
+    $apiUrl = [System.Environment]::GetEnvironmentVariable('API_PROVISION_URL', [System.EnvironmentVariableTarget]::User)
+
+    if ($null -eq $apiUrl) {
+        return $null
+    }
+
+    Write-Host "Retrieving Network Info for $networkName"
+    $authToken = Get-AuthToken -scope "unifi.ipmanager"
+
+    $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+    $headers.Add("Authorization", "Bearer $authToken")
+
+    $apiUrl = $apiUrl.TrimEnd("/")
+
+    try {
+        Write-Debug "Getting with $apiUrl/network/$networkName"
+        $result = Invoke-RestMethod "$apiUrl/network/$networkName" -headers $headers -method Get
+    }
+    catch {
+        Write-Host $_.Exception.ToString();
+        return $null;
+    }
+
+    if ($false -eq $result.Success) {
+        Write-Error "Error deleting result: $($result.Errors)"
+        return $null
+    }
+    return $result.data
 }

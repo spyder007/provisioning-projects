@@ -52,7 +52,9 @@ function Copy-PxVmTemplate {
         [string]
         $vmStorage = "vmthin",
         [bool]
-        $startVm = $true
+        $startVm = $true,
+        [int]
+        $vlanId = 50
     )
     
     $ticket = Invoke-ProxmoxLogin
@@ -93,7 +95,12 @@ function Copy-PxVmTemplate {
         $macAddress = "02:00:" + (Get-Random -Minimum 0 -Maximum 255).ToString("X2") + ":" + (Get-Random -Minimum 0 -Maximum 255).ToString("X2") + ":" + (Get-Random -Minimum 0 -Maximum 255).ToString("X2")
     }
 
-    $netConfig = @{ 0 = "virtio=$macAddress,bridge=vmbr0" }
+    $netConfigString = "virtio=$macAddress,bridge=vmbr0"
+    if ($vlanId -gt 0) {
+        $netConfigString += ",tag=$vlanId"
+    }       
+
+    $netConfig = @{ 0 = $netConfigString }
     $ipconfig = @{ 0 = "ip=dhcp,ip6=dhcp" }
 
     Write-Host "Setting Proxmox VM Config: $name"
