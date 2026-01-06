@@ -4,9 +4,9 @@
     "Cores": 4,
     "Memory": 8192,
     "DiskSizeGb": 120,
-    "ClusterNodeStorage": "pxhp-thin-01",
-    "ClusterNode": "pxhp",
-    "BaseVmId": 9999,
+    "ClusterNodeStorage": "vmthin",
+    "ClusterNode": "pmxdell",
+    "BaseVmId": 98999,
     "MinVmId": 30000,
     "MaxVmId": 30100
 }

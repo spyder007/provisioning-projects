@@ -45,6 +45,7 @@ function Add-PxNodeToRke2Cluster {
         [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
         $packerErrorAction = "cleanup",
         [bool] $useUnifi = $true,
+        [string] $unifiNetwork = "Lab",
         [string] $vmNotes = ""
     )
     Test-Imports $useUnifi
@@ -56,7 +57,7 @@ function Add-PxNodeToRke2Cluster {
         return -1;    
     }
     
-    $nodeDetail = New-PxRke2ClusterNode -clusterName $clusterName -dnsDomain $dnsDomain -vmSize $vmSize -nodeType $nodeType -packerErrorAction $packerErrorAction -useUnifi $useUnifi
+    $nodeDetail = New-PxRke2ClusterNode -clusterName $clusterName -dnsDomain $dnsDomain -vmSize $vmSize -nodeType $nodeType -packerErrorAction $packerErrorAction -useUnifi $useUnifi -unifiNetwork $unifiNetwork
 
     
     if ($nodeDetail.success) {
@@ -65,16 +66,20 @@ function Add-PxNodeToRke2Cluster {
             # Servers get added to the cp-<cluster name>, while agents get added to tfx-<cluster name>
             if ($nodeType -eq "server" -or $nodeType -eq "first-server") {
                 $clusterDns.controlPlane += @{
-                    zoneName = "$dnsDomain"
-                    hostName = "cp-$($clusterName)"
-                    data     = "$($nodeDetail.ipAddress)"
+                    hostName = "cp-$($clusterName).$($dnsDomain)"
+                    ipAddress     = "$($nodeDetail.ipAddress)"
+                    recordType = "A"
+                    macAddress = $null
+                    deviceLock = $false
                 }
             }
             else {
                 $clusterDns.traffic += @{
-                    zoneName = "$dnsDomain"
-                    hostName = "tfx-$($clusterName)"
-                    data     = "$($nodeDetail.ipAddress)"
+                    hostName = "tfx-$($clusterName).$($dnsDomain)"
+                    ipAddress = "$($nodeDetail.ipAddress)"
+                    recordType = "A"
+                    macAddress = $null
+                    deviceLock = $false
                 }
             }
             $clusterDns = Update-ClusterDns $clusterDns
@@ -128,7 +133,8 @@ function New-PxRke2ClusterNode {
         $nodeType,
         [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
         $packerErrorAction = "cleanup",
-        [bool] $useUnifi = $true
+        [bool] $useUnifi = $true,
+        [string] $unifiNetwork = "Lab"
     )
 
     Test-Imports $useUnifi
@@ -145,7 +151,7 @@ function New-PxRke2ClusterNode {
 
     $macAddress = $null;
     if ($useUnifi) {
-        $macAddress = Invoke-ProvisionUnifiClient -name "$($machineName)" -hostname "$($machineName)"
+        $macAddress = Invoke-ProvisionUnifiClient -name "$($machineName)" -hostname "$($machineName)" -network $unifiNetwork
         if ($null -eq $macAddress) {
             Write-Host "Using random mac address"
         }
@@ -153,6 +159,11 @@ function New-PxRke2ClusterNode {
             $macAddress | Format-Table | Out-Host
             Write-Host "Mac Address = $($macAddress.RawMacAddress)"
         }
+    }
+
+    if ([System.String]::IsNullOrWhiteSpace($macAddress.MacAddress)) {
+        Write-Host "Invalid Mac Address.  Stopping"
+        return;
     }
 
     $vmSettings = Get-PxVmSettings -vmSize $vmSize  
@@ -171,6 +182,8 @@ function New-PxRke2ClusterNode {
 
     $secretContent = Get-Content -Raw -Path ".\templates\proxmox\rke-quick\secrets-template.pkrvars.hcl"
     $secretContent = $secretContent -replace "{SSH_HOST_IP}", $macAddress.IPAddress
+    $secretContent = $secretContent -replace "{username}", $rkeSettings.baseVmUsername
+    $secretContent = $secretContent -replace "{password}", $rkeSettings.baseVmPassword
 
     # Create Secrets File
     $secretsFile = ".\templates\proxmox\rke-quick\secrets.pkrvars.hcl"
@@ -211,8 +224,8 @@ function New-PxRke2ClusterNode {
     }
 
     #Read-Host "Press Enter to continue with Packer Build"
-    Write-Host "Waiting 5 minutes before starting Packer Build to ensure Proxmox is ready..."
-    Start-Sleep -Seconds (60 * 5)
+    Write-Host "Waiting 10 minutes before starting Packer Build to ensure Proxmox is ready..."
+    Start-Sleep -Seconds (60 * 10)
 
     Invoke-Expression "packer init `"$packerTemplate`"" | Out-Host
     Invoke-Expression "packer build $onError -var-file `"$secretVariableFile`" $extraVarFileArgument $httpArgument $ExtraPackerArguments `"$packerTemplate`"" | Out-Host
@@ -288,7 +301,7 @@ function Remove-NodeFromPxRke2Cluster {
         $clusterDns = Get-ClusterDns -clusterName $clusterName
         
         $nodeInfo = Invoke-K8CommandJson "get nodes" -clusterName $clusterName
-        $ipAddress = $nodeInfo.items | Where-Object {$_.metadata.name -eq "gk-internal-srv-093" } | ForEach-Object { $_.status.addresses } | Where-Object { $_.type -eq "InternalIP" }
+        $ipAddress = $nodeInfo.items | Where-Object {$_.metadata.name -eq "$machineName" } | ForEach-Object { $_.status.addresses } | Where-Object { $_.type -eq "InternalIP" }
 
         # #remove the IP From the control plane
         $clusterDns.controlPlane = $clusterDns.controlPlane | Where-Object { $_.data -ne $ipAddress.address }
@@ -646,6 +659,8 @@ Function Set-PxRke2Settings {
         $secretsVariableFile,
         $baseVmcxPath,
         $baseVmId,
+        $baseVmUsername,
+        $baseVmPassword,
         $minVmId,
         $maxVmId,
         $clusterNode,
@@ -680,6 +695,16 @@ Function Set-PxRke2Settings {
     if ($null -ne $baseVmId) {
         $env:RKE2_PROVISION_BASE_VM_PX_ID = "$baseVmId"
         [System.Environment]::SetEnvironmentVariable('RKE2_PROVISION_BASE_VM_PX_ID', "$baseVmId", [System.EnvironmentVariableTarget]::User)
+    }
+
+    if ($null -ne $baseVmUsername) {
+        $env:RKE2_PROVISION_BASE_VM_USERNAME = "$baseVmUsername"
+        [System.Environment]::SetEnvironmentVariable('RKE2_PROVISION_BASE_VM_USERNAME', "$baseVmUsername", [System.EnvironmentVariableTarget]::User)
+    }
+
+    if ($null -ne $baseVmPassword) {
+        $env:RKE2_PROVISION_BASE_VM_PASSWORD = "$baseVmPassword"
+        [System.Environment]::SetEnvironmentVariable('RKE2_PROVISION_BASE_VM_PASSWORD', "$baseVmPassword", [System.EnvironmentVariableTarget]::User)
     }
 
     if ($null -ne $minVmId) {
@@ -739,6 +764,16 @@ function Get-PxRke2SettingsFromEnvironment {
         $baseVmId = "0"
     }
 
+    $baseVmUserName = $env:RKE2_PROVISION_BASE_VM_USERNAME
+    if ([string]::IsNullOrWhiteSpace($baseVmUserName)) {
+        $baseVmUserName = [System.Environment]::GetEnvironmentVariable('RKE2_PROVISION_BASE_VM_USERNAME', [System.EnvironmentVariableTarget]::User)
+    }
+
+    $baseVmPassword = $env:RKE2_PROVISION_BASE_VM_PASSWORD
+    if ([string]::IsNullOrWhiteSpace($baseVmPassword)) {
+        $baseVmPassword = [System.Environment]::GetEnvironmentVariable('RKE2_PROVISION_BASE_VM_PASSWORD', [System.EnvironmentVariableTarget]::User)
+    }
+
     $minVmId = $env:RKE2_PROVISION_MIN_VM_PX_ID
     if ([string]::IsNullOrWhiteSpace($minVmId)) {
         $minVmId = [System.Environment]::GetEnvironmentVariable('RKE2_PROVISION_MIN_VM_PX_ID', [System.EnvironmentVariableTarget]::User)
@@ -776,6 +811,8 @@ function Get-PxRke2SettingsFromEnvironment {
         clusterStorage      = "$clusterStorage"
         secretsVariableFile = "$secretsVariableFile"
         baseVmId            = "$baseVmId"
+        baseVmUsername      = "$baseVmUsername"
+        baseVmPassword      = "$baseVmPassword"
         minVmId             = "$minVmId"    
         maxVmId             = "$maxVmId"
         clusterNode         = "$clusterNode"

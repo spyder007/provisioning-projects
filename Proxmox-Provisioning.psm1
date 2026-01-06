@@ -123,7 +123,9 @@ function Copy-PXUbuntuTemplateAndProvision {
         [bool]
         $useUnifi = $true,
         [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
-        $packerErrorAction = "cleanup"
+        $packerErrorAction = "cleanup",
+        [string]
+        $unifiNetwork = "Lab"
     )
 
     Test-Imports $useUnifi
@@ -144,7 +146,7 @@ function Copy-PXUbuntuTemplateAndProvision {
     }
 
     if ($useUnifi) {
-        $macAddress = Invoke-ProvisionUnifiClient -name "$($vmSettings.Name)" -hostname "$($vmSettings.Name)"
+        $macAddress = Invoke-ProvisionUnifiClient -name "$($vmSettings.Name)" -hostname "$($vmSettings.Name)" -network $unifiNetwork
         if ($null -eq $macAddress) {
             Write-Host "Using random mac address"
         }
@@ -157,7 +159,39 @@ function Copy-PXUbuntuTemplateAndProvision {
         $macAddress = $null
     }
 
-    $success = Copy-PxVmTemplate -pxNode $vmSettings.ClusterNode -vmId $vmSettings.BaseVmId -name $vmSettings.Name -vmDescription $vmDescription -newIdMin $vmSettings.MinVmId -newIdMax $vmSettings.MaxVmId -macAddress $macAddress.MacAddress -cpuCores $vmSettings.cores -memory $vmSettings.memory -vmStorage $vmSettings.ClusterNodeStorage -startVm $false
+    if ($null -eq $macAddress -or [string]::IsNullOrWhiteSpace($macAddress.MacAddress)) {
+        Write-Host "No Mac Address provided";
+        return @{
+            success = $false
+        }
+    }
+
+    $vlan = 0
+
+    if ($useUnifi) {
+        $networkInfo = Get-UnifiNetworkInfo -networkName $unifiNetwork
+        if ($null -eq $networkInfo) {
+            Write-Error "Could not get Unifi Network Info for network $unifiNetwork.  Stopping";
+            return @{
+                success = $false
+            }
+        }
+
+        if ($networkInfo.vlan -gt 0) {
+            $vlan = $networkInfo.vlan
+            Write-Host "Using VLAN $vlan"
+        }
+        else {
+            Write-Host "Using default VLAN 0"
+        }
+
+    }
+    else {
+        Write-Host "Using default VLAN 0"
+    }
+
+
+    $success = Copy-PxVmTemplate -pxNode $vmSettings.ClusterNode -vmId $vmSettings.BaseVmId -name $vmSettings.Name -vmDescription $vmDescription -newIdMin $vmSettings.MinVmId -newIdMax $vmSettings.MaxVmId -macAddress $macAddress.MacAddress -cpuCores $vmSettings.cores -memory $vmSettings.memory -vmStorage $vmSettings.ClusterNodeStorage -startVm $false -vlanId $vlan
 
     $newVm = Get-PxVmByName $vmSettings.Name
     if (-not $success -or $null -eq $newVm) {
@@ -223,6 +257,9 @@ function Copy-PXUbuntuTemplateAndProvision {
     $ipaddress = Get-PxVmIpAddress -vmId $newVm.vmid -pxNode $newVm.node
 
     Write-Host "New VM $($newVm.name) started with IP address $ipaddress"
+
+    Write-Host "Waiting 5 minutes before starting Packer Build to ensure Proxmox is ready..."
+    Start-Sleep -Seconds (60 * 5)
 
     $sshHostArgument = "-var `"ssh_host=$ipaddress`""
 

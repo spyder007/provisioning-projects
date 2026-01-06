@@ -1,6 +1,6 @@
 packer {
   required_plugins {
-    hyperv = {
+    proxmox = {
       version = "~> 1"
       source  = "github.com/hashicorp/proxmox"
     }
@@ -29,17 +29,12 @@ variable "http" {
 
 variable "iso_checksum" {
   type    = string
-  default = "d6dab0c3a657988501b4bd76f1297c053df710e06e0c3aece60dead24f270b4d"
-}
-
-variable "iso_url" {
-  type    = string
-  default = "https://releases.ubuntu.com/24.04.2/ubuntu-24.04.2-live-server-amd64.iso"
+  default = "c3514bf0056180d09376462a7a1b4f213c1d6e8ea67fae5c25099c6fd3d8274b"
 }
 
 variable "iso_file" {
   type    = string
-  default = "local:iso/ed98c57061f75178af0d15d9a5f83487504f970b.iso"
+  default = "local:iso/ubuntu-24.04.3-live-server-amd64.iso"
 }
 
 variable "mac_address" {
@@ -62,6 +57,16 @@ variable "provisioning_scripts" {
   default = ["./templates/proxmox/ubuntu-base/base-prov.sh"]
 }
 
+variable "px_node" {
+  type    = string
+  default = "pmxdell"
+}
+
+variable "px_cluster_address" {
+  type    = string
+  default = "pxhp.gerega.net"
+}
+
 variable "switch" {
   type    = string
   default = "vmbr0"
@@ -77,12 +82,12 @@ variable "vm_name" {
   default = "ubuntu-xenial"
 }
 
-variable "pmx_user" {
+variable "px_user" {
   type    = string
   default = ""
 }
 
-variable "pmx_password" {
+variable "px_password" {
   type    = string
   default = ""
 }
@@ -90,6 +95,16 @@ variable "pmx_password" {
 variable "runner_ip_address" {
     type = string
     default = env("RUNNER_IP_ADDRESS")
+}
+
+variable "vlan_tag" {
+  type    = number
+  default = 50
+}
+
+variable "vm_id" {
+  type    = string
+  default = "98999"
 }
 
 source "proxmox-iso" "ubuntu_vm" {
@@ -104,38 +119,40 @@ source "proxmox-iso" "ubuntu_vm" {
     type              = "scsi"
   }
 
-  cloud_init = true
-  cloud_init_storage_pool = "local-lvm"
-
+  cloud_init               = true
+  cloud_init_storage_pool  = "local-lvm"
+  machine                  = "q35"
   http_directory           = "${var.http}"
   insecure_skip_tls_verify = true
+
   boot_iso {
     iso_checksum        = "${var.iso_checksum}"
-    #iso_url             = "${var.iso_url}"
     iso_file            = "${var.iso_file}"
     iso_storage_pool    = "local"
   }
+
   network_adapters {
     bridge = "${var.switch}"
     model  = "virtio"
+    vlan_tag = var.vlan_tag
     #mac_address = var.mac_address == "" ? null : var.mac_address
   }
-  node                 = "pxhp"
-  #node                = "pmxdell" 
   
-  proxmox_url          = "https://192.168.1.25:8006/api2/json"
+  node                 = "${var.px_node}"
+  proxmox_url          = "https://${var.px_cluster_address}:8006/api2/json"
   ssh_password         = "${var.password}"
   ssh_timeout          = "1h"
   ssh_username         = "${var.username}"
   template_description = "Ubuntu 24.04 Base Image, generated on ${timestamp()}"
   template_name        = "ubuntu-2404-base"
-  username             = "${var.pmx_user}"
-  password             = "${var.pmx_password}"
+  username             = "${var.px_user}"
+  password             = "${var.px_password}"
 
+  cpu_type            = "host"
   cores               = "${var.cpus}"
   memory              = "${var.memory}"
   vm_name             = "${var.vm_name}"
-  vm_id               = "9999"
+  vm_id               = "${var.vm_id}"
 }
 
 build {

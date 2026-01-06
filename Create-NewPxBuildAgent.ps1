@@ -67,5 +67,5 @@ $vmSettings.Description = "$($vmSettings.Description) $agentDate"
 Write-Host "Creating new agent: $($vmSettings.Name)"
 
 ## Create and Provision agent
-Copy-PXUbuntuTemplateAndProvision $vmSettings $templateFile "$secretVariableFile" -ExtraVariableFile "$extraVariablFile" -packerErrorAction "$packerErrorAction"
+Copy-PXUbuntuTemplateAndProvision $vmSettings $templateFile "$secretVariableFile" -ExtraVariableFile "$extraVariablFile" -packerErrorAction "$packerErrorAction" -unifiNetwork "Lab"
 
