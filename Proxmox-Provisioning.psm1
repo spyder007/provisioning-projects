@@ -45,10 +45,78 @@ function Build-PXUbuntuTemplate {
     .NOTES
         Requires Proxmox VE API access and appropriate permissions to create and modify virtual machines.
     #>
+    param (
+        [Parameter(Mandatory = $true, Position = 1)]
+        $TemplateFile,
+        [Parameter(Mandatory = $true, Position = 2)]
+        $HostHttpFolder,
+        [Parameter(Mandatory = $true, Position = 3)]
+        $SecretVariableFile,
+        [Parameter(Position = 4)]
+        [ValidateSet("cleanup", "abort", "ask", "run-cleanup-provisioner")]
+        $packerErrorAction = "cleanup",
+        [Parameter(Position = 6)]
+        [string]
+        $ExtraVariableFile = ""
+    )
+
+    $vars = @{}
+    ## Grab the variables file
+    if (($null -ne $SecretVariableFile) -and (Test-Path $SecretVariableFile)) {
+        $variableLines = Get-Content $SecretVariableFile
+    
+        foreach ($varLine in $variableLines) {
+            if ($varLine -match "(?<var>[^=]*)=(?<value>.*)") {
+                $vars[$matches.var.Trim().ToLower()] = $matches.value.Trim().Trim("`"")
+            }
+        }
+    }
+    else {
+        Write-Error "Variable file is required";
+        return -1;
+    }
+
+    ## crypt the password (unix style) so that it can go into the autoinstall folder
+    $cryptedPass = (Write-Output "$($vars["password"])" | openssl passwd -6 -salt "FFFDFSDFSDF" -stdin)
+
+    if (Test-Path $HostHttpFolder) {
+        if (Test-Path "packerhttp") {
+            Remove-Item -Force -Recurse "packerhttp"
+        }
+
+        # Copy the contents
+        mkdir "packerhttp" | Out-Null
+        Copy-Item -Recurse "$HostHttpFolder\*" "packerhttp"
+
+        $user_data_content = Get-Content "packerhttp\user-data"
+        $user_data_content = $user_data_content -replace "{{username}}", "$($vars["username"])"
+        $user_data_content = $user_data_content -replace "{{crypted_password}}", "$cryptedPass"
+        $user_data_content = $user_data_content -replace "{{hostname}}", "$($machineName)"
+        $user_data_content | Set-Content "packerhttp\user-data"
+
+        $httpArgument = "-var `"http=packerhttp`""
+    }
+    else {
+        Write-Warning "Host HTTP Folder not found";
+        $httpArgument = ""
+    }
+
+    $onError = "-on-error=$packerErrorAction"
+
+    if ([string]::IsNullOrWhiteSpace($ExtraVariableFile)) {
+        $extraVarFileArgument = ""
+    }
+    else {
+        $extraVarFileArgument = "-var-file `"$ExtraVariableFile`""
+    }
+
+    #Invoke-Expression "packer build -var-file .\templates\proxmox\ubuntu-base\secrets.pkrvars.hcl $httpArgument .\templates\proxmox\ubuntu-base\ubuntu-2404-base.pkr.hcl"
+    Invoke-Expression "packer init $TemplateFile"
+    Invoke-Expression "packer build $onError -var-file $SecretVariableFile $extraVarFileArgument $httpArgument $TemplateFile"
+
 
     return @{
         success     = $success
-        machineName = "$machineName"
     }  
 }
 

@@ -1,0 +1,6 @@
+node-name: gk-internal-agt-0b4
+token: |
+  K10f0c95fd6eb84e7a469c7cd71f7800c951f5a599326c3a2ea53f90ff7f96ae195::server:19d4c10bbc12372f98d5c7d8add2fe6c
+ingress-controller: none
+server: https://cp-internal.gerega.net:9345
+

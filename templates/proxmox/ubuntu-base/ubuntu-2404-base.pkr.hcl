@@ -79,7 +79,7 @@ variable "username" {
 
 variable "vm_name" {
   type    = string
-  default = "ubuntu-xenial"
+  default = "ubuntu-2404-base"
 }
 
 variable "px_user" {
