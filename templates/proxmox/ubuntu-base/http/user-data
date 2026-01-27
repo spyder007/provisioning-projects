@@ -9,7 +9,7 @@ autoinstall:
     network:
       version: 2
       ethernets:
-        ens18:
+        enp6s18:
           dhcp4: yes
           dhcp-identifier: mac
           nameservers:

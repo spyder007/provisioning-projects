@@ -1,0 +1,11 @@
+server: https://cp-production.gerega.net:9345
+ingress-controller: none
+node-taint:
+- CriticalAddonsOnly=true:NoExecute
+token: |
+  K10214932676a2eb2b59df1fe03200161bb3354bec2a8f5ebb5105c5a309839e216::server:403937354c6b24be711e17bcfa73ab1d
+tls-san:
+- cp-production
+- cp-production.gerega.net
+node-name: gk-production-srv-082
+
