@@ -304,8 +304,8 @@ function Remove-NodeFromPxRke2Cluster {
         $ipAddress = $nodeInfo.items | Where-Object {$_.metadata.name -eq "$machineName" } | ForEach-Object { $_.status.addresses } | Where-Object { $_.type -eq "InternalIP" }
 
         # #remove the IP From the control plane
-        $clusterDns.controlPlane = $clusterDns.controlPlane | Where-Object { $_.data -ne $ipAddress.address }
-        $clusterDns.traffic = $clusterDns.traffic | Where-Object { $_.data -ne $ipAddress.address }
+        $clusterDns.controlPlane = @($clusterDns.controlPlane | Where-Object { $_.ipAddress -ne $ipAddress.address })
+        $clusterDns.traffic = @($clusterDns.traffic | Where-Object { $_.ipAddress -ne $ipAddress.address })
 
         $clusterDns = Update-ClusterDns $clusterDns
     }
