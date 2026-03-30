@@ -9,3 +9,4 @@ packerlog.txt
 **/templates/ubuntu/rke2/files/agent-config.yaml
 **/templates/ubuntu/rke2/files/server-config.yaml
 downloaded_iso_path/**
+test-results/**
