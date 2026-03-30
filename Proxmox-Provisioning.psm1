@@ -258,8 +258,18 @@ function Copy-PXUbuntuTemplateAndProvision {
         Write-Host "Using default VLAN 0"
     }
 
+    # Select the best storage pool on the selected node
+    Write-Host "Selecting balanced storage pool on $($vmSettings.ClusterNode) for $($vmSettings.Name)..."
+    $selectedStorage = Get-BalancedStoragePool -ProxmoxNode $vmSettings.ClusterNode -ExcludeStoragePools @("local-lvm", "local")
+    if ($null -ne $selectedStorage) {
+        Write-Host "Selected storage pool: $selectedStorage"
+    }
+    else {
+        Write-Warning "Storage balancing failed, using default: $($vmSettings.ClusterNodeStorage)"
+        $selectedStorage = $vmSettings.ClusterNodeStorage
+    }
 
-    $success = Copy-PxVmTemplate -pxNode $vmSettings.ClusterNode -vmId $vmSettings.BaseVmId -name $vmSettings.Name -vmDescription $vmDescription -newIdMin $vmSettings.MinVmId -newIdMax $vmSettings.MaxVmId -macAddress $macAddress.MacAddress -cpuCores $vmSettings.cores -memory $vmSettings.memory -vmStorage $vmSettings.ClusterNodeStorage -startVm $false -vlanId $vlan
+    $success = Copy-PxVmTemplate -pxNode $vmSettings.ClusterNode -vmId $vmSettings.BaseVmId -name $vmSettings.Name -vmDescription $vmDescription -newIdMin $vmSettings.MinVmId -newIdMax $vmSettings.MaxVmId -macAddress $macAddress.MacAddress -cpuCores $vmSettings.cores -memory $vmSettings.memory -vmStorage $selectedStorage -startVm $false -vlanId $vlan
 
     $newVm = Get-PxVmByName $vmSettings.Name
     if (-not $success -or $null -eq $newVm) {

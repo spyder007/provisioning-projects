@@ -1,4 +1,103 @@
+function Invoke-UnifiApiWithRetry {
+    <#
+    .SYNOPSIS
+    Execute a script block with retry logic for transient failures
 
+    .DESCRIPTION
+    Wraps API calls with automatic retry logic, handling transient network
+    and API failures with configurable retry attempts and delays
+
+    .PARAMETER ScriptBlock
+    The script block to execute
+
+    .PARAMETER MaxRetries
+    Maximum number of retry attempts (default: 3)
+
+    .PARAMETER RetryDelaySeconds
+    Delay between retry attempts (default: 10 seconds)
+
+    .PARAMETER OperationName
+    Descriptive name for the operation (for logging)
+
+    .EXAMPLE
+    PS> Invoke-UnifiApiWithRetry -ScriptBlock { Invoke-RestMethod $url } -OperationName "Get Cluster DNS"
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [scriptblock]$ScriptBlock,
+
+        [int]$MaxRetries = 3,
+
+        [int]$RetryDelaySeconds = 10,
+
+        [string]$OperationName = "Unifi API call"
+    )
+
+    $attempt = 0
+    $lastError = $null
+
+    while ($attempt -lt $MaxRetries) {
+        $attempt++
+
+        try {
+            Write-Verbose "$OperationName (attempt $attempt/$MaxRetries)"
+            $result = & $ScriptBlock
+            return $result
+        }
+        catch {
+            $lastError = $_
+            Write-Warning "$OperationName failed (attempt $attempt/$MaxRetries): $($_.Exception.Message)"
+
+            if ($attempt -lt $MaxRetries) {
+                Write-Host "Retrying in $RetryDelaySeconds seconds..."
+                Start-Sleep -Seconds $RetryDelaySeconds
+            }
+        }
+    }
+
+    throw "Operation '$OperationName' failed after $MaxRetries attempts. Last error: $lastError"
+}
+
+function Test-UnifiApiAvailable {
+    <#
+    .SYNOPSIS
+    Check if the Unifi API is available and responding
+
+    .DESCRIPTION
+    Performs a health check on the Unifi API to verify availability before operations
+
+    .PARAMETER TimeoutSeconds
+    Maximum time to wait for health check response (default: 10 seconds)
+
+    .EXAMPLE
+    PS> Test-UnifiApiAvailable
+    #>
+    param(
+        [int]$TimeoutSeconds = 10
+    )
+
+    $apiUrl = [System.Environment]::GetEnvironmentVariable('API_PROVISION_URL', [System.EnvironmentVariableTarget]::User)
+
+    if ($null -eq $apiUrl) {
+        Write-Warning "Unifi API URL not configured (API_PROVISION_URL environment variable)"
+        return $false
+    }
+
+    try {
+        # Try to get auth token as a basic health check
+        $authToken = Get-AuthToken -scope "unifi.ipmanager"
+
+        if ([string]::IsNullOrWhiteSpace($authToken)) {
+            return $false
+        }
+
+        return $true
+    }
+    catch {
+        Write-Warning "Unifi API health check failed: $($_.Exception.Message)"
+        return $false
+    }
+}
 
 Function Get-AuthToken {
     param (
@@ -151,34 +250,38 @@ Function Invoke-ProvisionUnifiClient {
         return $null
     }
 
-    $authToken = Get-AuthToken -scope "unifi.ipmanager"
+    # Use retry logic for provisioning
+    return Invoke-UnifiApiWithRetry -OperationName "Provision Unifi client '$name'" -ScriptBlock {
+        $authToken = Get-AuthToken -scope "unifi.ipmanager"
 
-    $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-    $headers.Add("Authorization", "Bearer $authToken")
+        $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+        $headers.Add("Authorization", "Bearer $authToken")
 
-    $body = @{
-        name      = "$name"
-        hostName  = "$hostName"
-        static_ip = $staticIp
-        sync_dns  = $syncDns
-        network   = "$network"
-    }
+        $body = @{
+            name      = "$name"
+            hostName  = "$hostName"
+            static_ip = $staticIp
+            sync_dns  = $syncDns
+            network   = "$network"
+        }
 
-    $apiUrl = $apiUrl.TrimEnd("/")
+        $apiUrl = $apiUrl.TrimEnd("/")
 
-    $bodyJson = $body | ConvertTo-Json
+        $bodyJson = $body | ConvertTo-Json
 
-    $result = Invoke-RestMethod "$apiUrl/client/provision" -headers $headers -method Post -Body $bodyJson -ContentType 'application/json'
+        Write-Host "Provisioning with $apiUrl/client/provision"
+        $result = Invoke-RestMethod "$apiUrl/client/provision" -headers $headers -method Post -Body $bodyJson -ContentType 'application/json' -SkipHttpErrorCheck -SkipCertificateCheck
 
-    if ($false -eq $result.Success) {
-        Write-Error "Error provisioning client: $($result.Errors)"
-        return $false
-    }
-    
-    return @{
-        RawMacAddress = $result.data.mac.Replace(":", "")
-        MacAddress    = $result.data.mac
-        IpAddress     = $result.data.fixed_ip
+        if ($false -eq $result.Success) {
+            Write-Host "Error provisioning client: $($result | ConvertTo-Json -Depth 5)"
+            throw "Error provisioning client: $($result.Errors)"
+        }
+
+        return @{
+            RawMacAddress = $result.data.mac.Replace(":", "")
+            MacAddress    = $result.data.mac
+            IpAddress     = $result.data.fixed_ip
+        }
     }
 }
 
@@ -255,23 +358,24 @@ function Update-ClusterDns {
         return $null
     }
 
-    $authToken = Get-AuthToken -scope "unifi.ipmanager"
+    # Use retry logic for DNS updates
+    return Invoke-UnifiApiWithRetry -OperationName "Update cluster DNS for '$($clusterDnsRecord.name)'" -ScriptBlock {
+        $authToken = Get-AuthToken -scope "unifi.ipmanager"
 
-    $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-    $headers.Add("Authorization", "Bearer $authToken")
-    $headers.Add("Content-Type", "application/json")
+        $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+        $headers.Add("Authorization", "Bearer $authToken")
+        $headers.Add("Content-Type", "application/json")
 
-    $apiUrl = $apiUrl.TrimEnd("/")
+        $apiUrl = $apiUrl.TrimEnd("/")
 
-    $result = Invoke-RestMethod "$apiUrl/clusterdns/$($clusterDnsRecord.name)" -headers $headers -method Put -Body (ConvertTo-Json $clusterDnsRecord)
+        $result = Invoke-RestMethod "$apiUrl/clusterdns/$($clusterDnsRecord.name)" -headers $headers -method Put -Body (ConvertTo-Json $clusterDnsRecord)
 
-    if ($false -eq $result.Success) {
-        Write-Error "Error updating Cluster DNS Record: $($result.Errors | ForEach-Object { $_ })"
-
-        Write-Error "$($result.messages | ForEach-Object { $_ })"
-        return $false
+        if ($false -eq $result.Success) {
+            $errorMessage = "Error updating Cluster DNS Record: $($result.Errors | ForEach-Object { $_ }) | $($result.messages | ForEach-Object { $_ })"
+            throw $errorMessage
+        }
+        return $result.data
     }
-    return $result.data
 }
 
 Function Get-UnifiClients {
@@ -307,28 +411,32 @@ Function Remove-UnifiClient {
     if ($null -eq $apiUrl) {
         return $true
     }
-    Write-Host "Retrieving Auth Token"
-    $authToken = Get-AuthToken -scope "unifi.ipmanager"
 
-    $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-    $headers.Add("Authorization", "Bearer $authToken")
-
-    $apiUrl = $apiUrl.TrimEnd("/")
-
+    # Use retry logic for client removal
     try {
-        Write-Host "Deleting with $apiUrl/client/$macAddress"
-        $result = Invoke-RestMethod "$apiUrl/client/$macAddress" -headers $headers -method Delete
+        Invoke-UnifiApiWithRetry -OperationName "Remove Unifi client with MAC '$macAddress'" -ScriptBlock {
+            Write-Host "Retrieving Auth Token"
+            $authToken = Get-AuthToken -scope "unifi.ipmanager"
+
+            $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+            $headers.Add("Authorization", "Bearer $authToken")
+
+            $apiUrl = $apiUrl.TrimEnd("/")
+
+            Write-Host "Deleting with $apiUrl/client/$macAddress"
+            $result = Invoke-RestMethod "$apiUrl/client/$macAddress" -headers $headers -method Delete
+
+            if ($false -eq $result.Success) {
+                throw "Error deleting client: $($result.Errors)"
+            }
+            return $true
+        }
+        return $true
     }
     catch {
-        Write-Host $_.Exception.ToString();
-        return $false;
-    }
-
-    if ($false -eq $result.Success) {
-        Write-Error "Error deleting result: $($deleteResult.Errors)"
+        Write-Error "Failed to remove Unifi client: $_"
         return $false
     }
-    return $true
 }
 
 function Get-UnifiNetworkInfo {
@@ -336,7 +444,7 @@ function Get-UnifiNetworkInfo {
         [Parameter(Mandatory = $true)]
         $networkName
     )
-    
+
     $apiUrl = [System.Environment]::GetEnvironmentVariable('API_PROVISION_URL', [System.EnvironmentVariableTarget]::User)
 
     if ($null -eq $apiUrl) {
@@ -344,25 +452,177 @@ function Get-UnifiNetworkInfo {
     }
 
     Write-Host "Retrieving Network Info for $networkName"
-    $authToken = Get-AuthToken -scope "unifi.ipmanager"
 
-    $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-    $headers.Add("Authorization", "Bearer $authToken")
-
-    $apiUrl = $apiUrl.TrimEnd("/")
-
+    # Use retry logic for network info retrieval
     try {
-        Write-Debug "Getting with $apiUrl/network/$networkName"
-        $result = Invoke-RestMethod "$apiUrl/network/$networkName" -headers $headers -method Get
+        return Invoke-UnifiApiWithRetry -OperationName "Get Unifi network info for '$networkName'" -ScriptBlock {
+            $authToken = Get-AuthToken -scope "unifi.ipmanager"
+
+            $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+            $headers.Add("Authorization", "Bearer $authToken")
+
+            $apiUrl = $apiUrl.TrimEnd("/")
+
+            Write-Debug "Getting with $apiUrl/network/$networkName"
+            $result = Invoke-RestMethod "$apiUrl/network/$networkName" -headers $headers -method Get
+
+            if ($false -eq $result.Success) {
+                throw "Error getting network info: $($result.Errors)"
+            }
+            return $result.data
+        }
     }
     catch {
-        Write-Host $_.Exception.ToString();
-        return $null;
-    }
-
-    if ($false -eq $result.Success) {
-        Write-Error "Error deleting result: $($result.Errors)"
+        Write-Error "Failed to get network info: $_"
         return $null
     }
-    return $result.data
+}
+
+function Invoke-DnsRefresh {
+    <#
+    .SYNOPSIS
+    Force DNS refresh on the DNS server
+
+    .DESCRIPTION
+    Restarts DNS services on the specified DNS server to force cache refresh.
+    Requires SSH access to the DNS server.
+
+    .PARAMETER DnsServerHost
+    DNS server hostname or IP address (default: 192.168.1.18)
+
+    .PARAMETER SshUser
+    SSH username for DNS server access (default: admin)
+
+    .EXAMPLE
+    PS> Invoke-DnsRefresh -DnsServerHost "192.168.1.18"
+    #>
+    param(
+        [string]$DnsServerHost = "192.168.1.18",
+        [string]$SshUser = "admin"
+    )
+
+    Write-Host "Forcing DNS refresh on $DnsServerHost..."
+
+    # Commands to restart DNS services
+    $commands = @(
+        "sudo systemctl restart systemd-resolved",
+        "sudo systemctl restart nginx",
+        "sleep 5"
+    )
+
+    foreach ($cmd in $commands) {
+        try {
+            $sshCommand = "ssh $SshUser@$DnsServerHost `"$cmd`""
+            Invoke-Expression $sshCommand 2>&1 | Out-Null
+            Write-Host "  Executed: $cmd"
+        }
+        catch {
+            Write-Warning "  Failed to execute: $cmd - $_"
+        }
+    }
+
+    Write-Host "DNS refresh complete"
+}
+
+function Wait-DnsRecord {
+    <#
+    .SYNOPSIS
+    Wait for a DNS record to propagate and resolve to the expected IP
+
+    .DESCRIPTION
+    Polls DNS for a hostname until it resolves to the expected IP address.
+    Includes automatic retry with DNS cache refresh if propagation fails.
+
+    .PARAMETER Hostname
+    The fully qualified domain name to resolve
+
+    .PARAMETER ExpectedIp
+    The expected IP address the hostname should resolve to
+
+    .PARAMETER TimeoutSeconds
+    Maximum time to wait for DNS propagation (default: 120 seconds)
+
+    .PARAMETER DnsServer
+    DNS server to query (default: 192.168.1.18)
+
+    .PARAMETER PollIntervalSeconds
+    How often to check DNS resolution (default: 5 seconds)
+
+    .EXAMPLE
+    PS> Wait-DnsRecord -Hostname "test-srv-001.lab.local" -ExpectedIp "192.168.1.100"
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Hostname,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ExpectedIp,
+
+        [int]$TimeoutSeconds = 120,
+
+        [string]$DnsServer = "192.168.1.18",
+
+        [int]$PollIntervalSeconds = 5
+    )
+
+    $startTime = Get-Date
+    $timeoutTime = $startTime.AddSeconds($TimeoutSeconds)
+
+    Write-Host "Waiting for DNS record: $Hostname -> $ExpectedIp"
+
+    while ((Get-Date) -lt $timeoutTime) {
+        try {
+            $resolved = Resolve-DnsName -Name $Hostname -Server $DnsServer -ErrorAction Stop
+
+            # Handle multiple IP addresses in response
+            $resolvedIps = @()
+            foreach ($record in $resolved) {
+                if ($record.IPAddress) {
+                    $resolvedIps += $record.IPAddress
+                }
+            }
+
+            if ($resolvedIps -contains $ExpectedIp) {
+                $elapsed = [Math]::Round(((Get-Date) - $startTime).TotalSeconds, 1)
+                Write-Host "DNS record resolved successfully after $elapsed seconds"
+                return $true
+            }
+
+            Write-Verbose "DNS returned: $($resolvedIps -join ', '), expected: $ExpectedIp"
+        }
+        catch {
+            Write-Verbose "DNS resolution failed: $($_.Exception.Message)"
+        }
+
+        Start-Sleep -Seconds $PollIntervalSeconds
+    }
+
+    Write-Warning "DNS record did not propagate within $TimeoutSeconds seconds"
+
+    # Force DNS refresh and try one more time
+    Write-Host "Attempting DNS cache refresh..."
+    Invoke-DnsRefresh -DnsServerHost $DnsServer
+    Start-Sleep -Seconds 10
+
+    try {
+        $resolved = Resolve-DnsName -Name $Hostname -Server $DnsServer -ErrorAction Stop
+
+        $resolvedIps = @()
+        foreach ($record in $resolved) {
+            if ($record.IPAddress) {
+                $resolvedIps += $record.IPAddress
+            }
+        }
+
+        if ($resolvedIps -contains $ExpectedIp) {
+            Write-Host "DNS record resolved after forced refresh"
+            return $true
+        }
+    }
+    catch {
+        Write-Verbose "DNS resolution still failed after refresh: $_"
+    }
+
+    Write-Error "DNS record failed to propagate: $Hostname -> $ExpectedIp"
+    return $false
 }

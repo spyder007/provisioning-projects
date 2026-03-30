@@ -54,7 +54,9 @@ function Copy-PxVmTemplate {
         [bool]
         $startVm = $true,
         [int]
-        $vlanId = 50
+        $vlanId = 50,
+        [int]
+        $bwlimit = 20480
     )
     
     $ticket = Invoke-ProxmoxLogin
@@ -73,7 +75,13 @@ function Copy-PxVmTemplate {
     }
     
     Write-Host "Copying Proxmox VM Template: $name"
-    $createAction = New-PveNodesQemuClone -PveTicket $ticket -Description $vmDescription -Name $name -newid $newId -node $pxNode -VmId $vmId -Full $fullClone -Storage $vmStorage
+    if ($bwlimit -gt 0) {
+        Write-Host "  Applying bandwidth throttling: $bwlimit MiB/s"
+        $createAction = New-PveNodesQemuClone -PveTicket $ticket -Description $vmDescription -Name $name -newid $newId -node $pxNode -VmId $vmId -Full $fullClone -Storage $vmStorage -Bwlimit $bwlimit
+    }
+    else {
+        $createAction = New-PveNodesQemuClone -PveTicket $ticket -Description $vmDescription -Name $name -newid $newId -node $pxNode -VmId $vmId -Full $fullClone -Storage $vmStorage
+    }
 
     $upId = $createAction.Response.data;
 
@@ -490,4 +498,508 @@ Function Set-ProxmoxSettings {
 
     [System.Environment]::SetEnvironmentVariable('PX_HOSTS_AND_PORTS', "$hostsAndPorts", [System.EnvironmentVariableTarget]::User)
     [System.Environment]::SetEnvironmentVariable('PX_API_TOKEN', "$apiToken", [System.EnvironmentVariableTarget]::User)
+}
+
+Function Get-BalancedStoragePool {
+    <#
+    .SYNOPSIS
+    Select the most balanced storage pool for VM provisioning
+
+    .DESCRIPTION
+    Analyzes VM distribution and storage usage across multiple storage pools
+    and returns the most balanced one based on usage percentage and VM count.
+    Automatically discovers available storage pools from Proxmox if not specified.
+
+    .PARAMETER ProxmoxNode
+    The Proxmox node name (default: pxhp)
+
+    .PARAMETER StoragePools
+    Optional array of storage pool names to analyze. If not specified, will auto-discover
+    all available storage pools that support VM images (lvmthin, dir, nfs, etc.)
+
+    .PARAMETER StorageType
+    Filter storage by type (e.g., 'lvmthin', 'dir', 'nfs'). If not specified, includes all VM-capable storage.
+
+    .PARAMETER ExcludeStoragePools
+    Array of storage pool names to exclude from auto-discovery. Useful for excluding backup storage,
+    ISO storage, or other pools that shouldn't be used for VM provisioning.
+
+    .PARAMETER PendingRemovalVMs
+    Array of VM IDs or names that will be removed during node cycling. The function will adjust
+    the balance calculation to account for these pending removals, ensuring the final state
+    (after cycling) is balanced rather than just the current state.
+
+    .EXAMPLE
+    PS> Get-BalancedStoragePool -ProxmoxNode "pxhp"
+
+    .EXAMPLE
+    PS> Get-BalancedStoragePool -ProxmoxNode "pxhp" -StorageType "lvmthin"
+
+    .EXAMPLE
+    PS> Get-BalancedStoragePool -ProxmoxNode "pxhp" -StoragePools @("vmthin", "vmthin2")
+
+    .EXAMPLE
+    PS> Get-BalancedStoragePool -ProxmoxNode "pxhp" -ExcludeStoragePools @("backup-storage", "iso-storage")
+
+    .EXAMPLE
+    PS> Get-BalancedStoragePool -ProxmoxNode "pxhp" -PendingRemovalVMs @("prod-agt-001", "prod-agt-002")
+    #>
+    param(
+        [string]$ProxmoxNode = "pxhp",
+        [string[]]$StoragePools = $null,
+        [string]$StorageType = $null,
+        [string[]]$ExcludeStoragePools = @(),
+        [string[]]$PendingRemovalVMs = @()
+    )
+
+    $ticket = Invoke-ProxmoxLogin
+
+    Write-Host "Analyzing storage pool balance on $ProxmoxNode..."
+
+    # Auto-discover storage pools if not specified
+    if ($null -eq $StoragePools -or $StoragePools.Count -eq 0) {
+        Write-Host "Auto-discovering storage pools on $ProxmoxNode..."
+        if ($ExcludeStoragePools.Count -gt 0) {
+            Write-Host "Excluding storage pools: $($ExcludeStoragePools -join ', ')"
+        }
+
+        try {
+            # Get all storage on the node
+            $allStorage = Get-PveNodesStorage -PveTicket $ticket -Node $ProxmoxNode
+
+            if ($allStorage.IsSuccessStatusCode -and $allStorage.Response.data) {
+                $StoragePools = @()
+
+                foreach ($storage in $allStorage.Response.data) {
+                    # Only include storage that supports VM images (content includes 'images')
+                    $contentTypes = $storage.content -split ','
+                    $supportsImages = $contentTypes -contains 'images'
+
+                    if (-not $supportsImages) {
+                        Write-Verbose "Skipping $($storage.storage): does not support images"
+                        continue
+                    }
+
+                    # Always exclude 'local-lvm' as it's reserved for Proxmox system data
+                    if ($storage.storage -eq 'local-lvm') {
+                        Write-Verbose "Skipping $($storage.storage): reserved for Proxmox system data"
+                        continue
+                    }
+
+                    # Filter by storage type if specified
+                    if ($StorageType -and $storage.type -ne $StorageType) {
+                        Write-Verbose "Skipping $($storage.storage): type $($storage.type) does not match filter $StorageType"
+                        continue
+                    }
+
+                    # Exclude storage pools in the exclusion list
+                    if ($ExcludeStoragePools -contains $storage.storage) {
+                        Write-Verbose "Skipping $($storage.storage): in exclusion list"
+                        continue
+                    }
+
+                    # Only include enabled/active storage
+                    if ($storage.enabled -eq 1 -or $storage.active -eq 1 -or (-not $storage.PSObject.Properties['enabled'])) {
+                        $StoragePools += $storage.storage
+                        Write-Verbose "Added storage pool: $($storage.storage) (type: $($storage.type))"
+                    }
+                    else {
+                        Write-Verbose "Skipping $($storage.storage): not enabled"
+                    }
+                }
+
+                if ($StoragePools.Count -eq 0) {
+                    Write-Warning "No suitable storage pools found on $ProxmoxNode"
+                    Write-Host "Falling back to default storage pools: vmthin, vmthin2, vmthin3"
+                    $StoragePools = @("vmthin", "vmthin2", "vmthin3")
+                }
+                else {
+                    Write-Host "Discovered $($StoragePools.Count) storage pool(s): $($StoragePools -join ', ')"
+                }
+            }
+            else {
+                Write-Warning "Failed to retrieve storage list from Proxmox"
+                Write-Host "Falling back to default storage pools: vmthin, vmthin2, vmthin3"
+                $StoragePools = @("vmthin", "vmthin2", "vmthin3")
+            }
+        }
+        catch {
+            Write-Warning "Error discovering storage pools: $_"
+            Write-Host "Falling back to default storage pools: vmthin, vmthin2, vmthin3"
+            $StoragePools = @("vmthin", "vmthin2", "vmthin3")
+        }
+    }
+    else {
+        Write-Host "Using specified storage pools: $($StoragePools -join ', ')"
+
+        # Apply exclusions to manually specified pools as well
+        if ($ExcludeStoragePools.Count -gt 0) {
+            $originalCount = $StoragePools.Count
+            $StoragePools = @($StoragePools | Where-Object { $ExcludeStoragePools -notcontains $_ })
+
+            $excludedCount = $originalCount - $StoragePools.Count
+            if ($excludedCount -gt 0) {
+                Write-Host "Applied exclusions: removed $excludedCount pool(s)"
+                Write-Host "Final storage pools: $($StoragePools -join ', ')"
+            }
+        }
+    }
+
+    # Validate we have at least one storage pool
+    if ($StoragePools.Count -eq 0) {
+        Write-Error "No storage pools available after applying filters and exclusions"
+        return $null
+    }
+
+    # Get current VM distribution across storage pools
+    $vms = Get-PveNodesQemu -PveTicket $ticket -Node $ProxmoxNode
+
+    $distribution = @{}
+    $vmToStorageMap = @{}  # Track which storage each VM is on
+    foreach ($pool in $StoragePools) {
+        $distribution[$pool] = 0
+    }
+
+    # Count VMs per storage pool
+    foreach ($vm in $vms.Response.data) {
+        try {
+            $vmConfig = Get-PveNodesQemuConfig -PveTicket $ticket -Node $ProxmoxNode -VmId $vm.vmid
+
+            # Parse storage from disk configurations (scsi0, virtio0, etc.)
+            $configData = $vmConfig.Response.data
+            $diskConfigs = @($configData.scsi0, $configData.virtio0, $configData.ide0)
+
+            foreach ($diskConfig in $diskConfigs) {
+                if ($diskConfig -and $diskConfig -match "^([^:]+):") {
+                    $storage = $Matches[1]
+                    if ($distribution.ContainsKey($storage)) {
+                        $distribution[$storage]++
+                        $vmToStorageMap[$vm.name] = $storage
+                        $vmToStorageMap["$($vm.vmid)"] = $storage  # Store by ID too
+                        break  # Count each VM only once
+                    }
+                }
+            }
+        }
+        catch {
+            Write-Verbose "Could not get config for VM $($vm.vmid): $_"
+        }
+    }
+
+    # Adjust distribution to account for pending removals (for node cycling)
+    if ($PendingRemovalVMs.Count -gt 0) {
+        Write-Host "Adjusting balance calculation for $($PendingRemovalVMs.Count) VM(s) pending removal..."
+        foreach ($vmIdentifier in $PendingRemovalVMs) {
+            if ($vmToStorageMap.ContainsKey($vmIdentifier)) {
+                $storagePool = $vmToStorageMap[$vmIdentifier]
+                $distribution[$storagePool]--
+                Write-Verbose "  Adjusted: $vmIdentifier will be removed from $storagePool"
+            }
+            else {
+                Write-Verbose "  Warning: Could not find storage for pending removal VM: $vmIdentifier"
+            }
+        }
+        Write-Host "Calculating balance based on post-cycling state..."
+    }
+
+    # Get storage capacity for each pool
+    $storageInfo = @{}
+    foreach ($pool in $StoragePools) {
+        try {
+            $status = Get-PveNodesStorageStatus -PveTicket $ticket -Node $ProxmoxNode -Storage $pool
+
+            if ($status.IsSuccessStatusCode) {
+                $data = $status.Response.data
+                $total = $data.total
+                $used = $data.used
+                $available = $data.avail
+
+                $storageInfo[$pool] = @{
+                    Total = $total
+                    Used = $used
+                    Available = $available
+                    UsedPercent = if ($total -gt 0) { ($used / $total) * 100 } else { 0 }
+                    VMCount = $distribution[$pool]
+                }
+            }
+            else {
+                Write-Warning "Could not get status for storage pool $pool"
+                $storageInfo[$pool] = @{
+                    Total = 0
+                    Used = 0
+                    Available = 0
+                    UsedPercent = 100
+                    VMCount = $distribution[$pool]
+                }
+            }
+        }
+        catch {
+            Write-Warning "Error getting storage info for $($pool): $_"
+            $storageInfo[$pool] = @{
+                Total = 0
+                Used = 0
+                Available = 0
+                UsedPercent = 100
+                VMCount = $distribution[$pool]
+            }
+        }
+    }
+
+    # Calculate score for each pool (lower is better)
+    $scores = @{}
+    $avgVMCount = ($distribution.Values | Measure-Object -Average).Average
+    if ($avgVMCount -eq 0) { $avgVMCount = 1 }
+
+    foreach ($pool in $StoragePools) {
+        $info = $storageInfo[$pool]
+
+        # Score based on:
+        # - Used percentage (weight: 0.6)
+        # - VM count relative to average (weight: 0.4)
+        $vmCountScore = ($info.VMCount / $avgVMCount) * 100
+
+        $scores[$pool] = ($info.UsedPercent * 0.6) + ($vmCountScore * 0.4)
+    }
+
+    # Display distribution
+    Write-Host "`nStorage Pool Distribution:"
+    foreach ($pool in $StoragePools) {
+        $info = $storageInfo[$pool]
+        Write-Host "  $($pool):"
+        Write-Host "    VMs: $($info.VMCount)"
+        Write-Host "    Used: $([Math]::Round($info.UsedPercent, 1))%"
+        Write-Host "    Score: $([Math]::Round($scores[$pool], 2))"
+    }
+
+    # Select pool with lowest score
+    $selectedPool = ($scores.GetEnumerator() | Sort-Object Value | Select-Object -First 1).Name
+
+    Write-Host "`nSelected storage pool: $selectedPool (best balance)"
+
+    return $selectedPool
+}
+
+Function Get-BalancedProxmoxNode {
+    <#
+    .SYNOPSIS
+    Select the most balanced Proxmox node for VM provisioning using weighted distribution
+
+    .DESCRIPTION
+    Analyzes VM distribution across Proxmox cluster nodes and returns the node that is most
+    under its target weight. Supports weighted distribution (e.g., 90% on node1, 10% on node2).
+
+    .PARAMETER NodeWeights
+    Hash table of node names to weight percentages (must sum to 100).
+    Example: @{ "pxhp" = 90; "pmxdell" = 10 }
+
+    .PARAMETER ExcludeNodes
+    Array of node names to exclude from selection (e.g., nodes under maintenance)
+
+    .PARAMETER PendingRemovalVMs
+    Array of VM IDs or names that will be removed during node cycling. The function will adjust
+    the balance calculation to account for these pending removals, ensuring the final state
+    (after cycling) is balanced rather than just the current state.
+
+    .EXAMPLE
+    PS> Get-BalancedProxmoxNode -NodeWeights @{ "pxhp" = 90; "pmxdell" = 10 }
+    Returns "pmxdell" if it has fewer than 10% of total VMs
+
+    .EXAMPLE
+    PS> Get-BalancedProxmoxNode -NodeWeights @{ "pxhp" = 70; "pmxdell" = 20; "pxnode3" = 10 }
+    Selects the node most under its target weight across three nodes
+
+    .EXAMPLE
+    PS> Get-BalancedProxmoxNode -NodeWeights @{ "pxhp" = 90; "pmxdell" = 10 } -PendingRemovalVMs @("prod-agt-001", "prod-agt-002")
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$NodeWeights,
+
+        [string[]]$ExcludeNodes = @(),
+
+        [string[]]$PendingRemovalVMs = @()
+    )
+
+    # Validate weights sum to 100
+    $totalWeight = ($NodeWeights.Values | Measure-Object -Sum).Sum
+    if ($totalWeight -ne 100) {
+        Write-Error "Node weights must sum to 100. Current sum: $totalWeight"
+        return $null
+    }
+
+    $ticket = Invoke-ProxmoxLogin
+
+    Write-Host "Analyzing Proxmox cluster node distribution..."
+
+    # Get all nodes in the cluster
+    try {
+        $clusterNodes = Get-PveNodes -PveTicket $ticket
+
+        if (-not $clusterNodes.IsSuccessStatusCode) {
+            Write-Error "Failed to retrieve cluster nodes from Proxmox"
+            return $null
+        }
+
+        $availableNodes = $clusterNodes.Response.data | Where-Object {
+            $NodeWeights.ContainsKey($_.node) -and
+            $ExcludeNodes -notcontains $_.node -and
+            $_.status -eq 'online'
+        }
+
+        if ($availableNodes.Count -eq 0) {
+            Write-Error "No available nodes found matching the weight configuration"
+            return $null
+        }
+
+        Write-Host "Found $($availableNodes.Count) online node(s) in cluster:"
+        foreach ($node in $availableNodes) {
+            Write-Host "  - $($node.node) (weight: $($NodeWeights[$node.node])%)"
+        }
+    }
+    catch {
+        Write-Error "Error querying cluster nodes: $_"
+        return $null
+    }
+
+    # Analyze resource allocation per node (VMs, CPU cores, memory)
+    $nodeResources = @{}
+    $vmToNodeMap = @{}  # Track which node each VM is on
+    $vmResourceMap = @{}  # Track CPU and memory for each VM
+    $totalVMs = 0
+    $totalCPU = 0
+    $totalMemory = 0
+
+    foreach ($node in $availableNodes) {
+        $nodeName = $node.node
+
+        try {
+            $vms = Get-PveNodesQemu -PveTicket $ticket -Node $nodeName
+
+            $vmCount = 0
+            $cpuCores = 0
+            $memoryMB = 0
+
+            if ($vms.IsSuccessStatusCode) {
+                $vmCount = $vms.Response.data.Count
+
+                # Sum up CPU and memory allocations for all VMs
+                foreach ($vm in $vms.Response.data) {
+                    $cpuCores += $vm.cpus
+                    $memoryMB += $vm.maxmem / 1MB
+
+                    # Track VM to node mapping for pending removal adjustments
+                    $vmToNodeMap[$vm.name] = $nodeName
+                    $vmToNodeMap["$($vm.vmid)"] = $nodeName
+                    $vmResourceMap[$vm.name] = @{
+                        CPUCores = $vm.cpus
+                        MemoryMB = $vm.maxmem / 1MB
+                    }
+                    $vmResourceMap["$($vm.vmid)"] = @{
+                        CPUCores = $vm.cpus
+                        MemoryMB = $vm.maxmem / 1MB
+                    }
+                }
+            }
+            else {
+                Write-Warning "Could not get VM data for node $nodeName"
+            }
+
+            $nodeResources[$nodeName] = @{
+                VMCount   = $vmCount
+                CPUCores  = $cpuCores
+                MemoryMB  = [Math]::Round($memoryMB, 0)
+                MemoryGB  = [Math]::Round($memoryMB / 1024, 1)
+            }
+
+            $totalVMs += $vmCount
+            $totalCPU += $cpuCores
+            $totalMemory += $memoryMB
+        }
+        catch {
+            Write-Warning "Error querying resources on node ${nodeName}: $_"
+            $nodeResources[$nodeName] = @{
+                VMCount   = 0
+                CPUCores  = 0
+                MemoryMB  = 0
+                MemoryGB  = 0
+            }
+        }
+    }
+
+    # Adjust resources to account for pending removals (for node cycling)
+    if ($PendingRemovalVMs.Count -gt 0) {
+        Write-Host "`nAdjusting balance calculation for $($PendingRemovalVMs.Count) VM(s) pending removal..."
+        foreach ($vmIdentifier in $PendingRemovalVMs) {
+            if ($vmToNodeMap.ContainsKey($vmIdentifier) -and $vmResourceMap.ContainsKey($vmIdentifier)) {
+                $nodeName = $vmToNodeMap[$vmIdentifier]
+                $vmResources = $vmResourceMap[$vmIdentifier]
+
+                $nodeResources[$nodeName].VMCount--
+                $nodeResources[$nodeName].CPUCores -= $vmResources.CPUCores
+                $nodeResources[$nodeName].MemoryMB -= $vmResources.MemoryMB
+                $nodeResources[$nodeName].MemoryGB = [Math]::Round($nodeResources[$nodeName].MemoryMB / 1024, 1)
+
+                $totalVMs--
+                $totalCPU -= $vmResources.CPUCores
+                $totalMemory -= $vmResources.MemoryMB
+
+                Write-Verbose "  Adjusted: $vmIdentifier will be removed from $nodeName ($($vmResources.CPUCores) cores, $([Math]::Round($vmResources.MemoryMB / 1024, 1)) GB)"
+            }
+            else {
+                Write-Verbose "  Warning: Could not find node for pending removal VM: $vmIdentifier"
+            }
+        }
+        Write-Host "Calculating balance based on post-cycling state..."
+    }
+
+    Write-Host "`nCluster Resource Distribution $(if ($PendingRemovalVMs.Count -gt 0) { '(after pending removals)' } else { '(current state)' }):"
+    Write-Host "  Total VMs: $totalVMs"
+    Write-Host "  Total CPU Cores: $totalCPU"
+    Write-Host "  Total Memory: $([Math]::Round($totalMemory / 1024, 1)) GB"
+
+    # Calculate deviation from target for each node
+    # We'll use a weighted score considering VMs (40%), CPU (30%), and Memory (30%)
+    $deviations = @{}
+
+    foreach ($node in $availableNodes) {
+        $nodeName = $node.node
+        $targetWeight = $NodeWeights[$nodeName]
+        $resources = $nodeResources[$nodeName]
+
+        # Calculate current percentages for each resource type
+        $vmPercent = if ($totalVMs -gt 0) {
+            ($resources.VMCount / $totalVMs) * 100
+        } else { 0 }
+
+        $cpuPercent = if ($totalCPU -gt 0) {
+            ($resources.CPUCores / $totalCPU) * 100
+        } else { 0 }
+
+        $memPercent = if ($totalMemory -gt 0) {
+            ($resources.MemoryMB / $totalMemory) * 100
+        } else { 0 }
+
+        # Calculate weighted resource percentage: 40% VMs, 30% CPU, 30% Memory
+        $weightedPercent = ($vmPercent * 0.4) + ($cpuPercent * 0.3) + ($memPercent * 0.3)
+
+        # Calculate how far under target this node is
+        # Negative deviation = under target (good candidate)
+        # Positive deviation = over target (avoid)
+        $deviation = $weightedPercent - $targetWeight
+        $deviations[$nodeName] = $deviation
+
+        Write-Host "`n  ${nodeName}:"
+        Write-Host "    VMs: $($resources.VMCount) ($([Math]::Round($vmPercent, 1))%)"
+        Write-Host "    CPU Cores: $($resources.CPUCores) ($([Math]::Round($cpuPercent, 1))%)"
+        Write-Host "    Memory: $($resources.MemoryGB) GB ($([Math]::Round($memPercent, 1))%)"
+        Write-Host "    Weighted %: $([Math]::Round($weightedPercent, 1))% (target: ${targetWeight}%)"
+        Write-Host "    Deviation: $([Math]::Round($deviation, 1))% $(if ($deviation -lt 0) { "(under target)" } elseif ($deviation -gt 0) { "(over target)" } else { "(at target)" })"
+    }
+
+    # Select node with most negative deviation (most under target)
+    $selectedNode = ($deviations.GetEnumerator() | Sort-Object Value | Select-Object -First 1).Name
+
+    Write-Host "`nSelected node: $selectedNode (most under target weight)"
+
+    return $selectedNode
 }
