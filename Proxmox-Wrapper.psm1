@@ -417,6 +417,52 @@ Function Remove-PxVmById {
     }
 }
 
+Function Remove-PxVmCloudInitDrive {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$vmId,
+        [Parameter(Mandatory = $true)]
+        [string]$pxNode
+    )
+
+    $ticket = Invoke-ProxmoxLogin
+
+    Write-Host "Looking for cloud-init drive on VM $vmId on node $pxNode..."
+    $response = Get-PveNodesQemuConfig -PveTicket $ticket -Node $pxNode -VmId $vmId
+
+    if (-not $response.IsSuccessStatusCode) {
+        Write-Error "Failed to get VM config for $vmId"
+        return $false
+    }
+
+    $config = $response.Response.data
+
+    $cloudInitDevice = $null
+    foreach ($slot in @("ide0", "ide1", "ide2", "ide3", "sata0", "sata1", "scsi0", "scsi1")) {
+        if ($config.$slot -and $config.$slot -match "cloudinit") {
+            $cloudInitDevice = $slot
+            break
+        }
+    }
+
+    if ($null -eq $cloudInitDevice) {
+        Write-Host "No cloud-init drive found on VM $vmId"
+        return $true
+    }
+
+    Write-Host "Removing cloud-init drive ($cloudInitDevice) from VM $vmId..."
+    $deleteResponse = Set-PveNodesQemuConfig -PveTicket $ticket -Node $pxNode -VmId $vmId -Delete $cloudInitDevice
+
+    if ($deleteResponse.IsSuccessStatusCode) {
+        Write-Host "Cloud-init drive removed successfully from VM $vmId"
+        return $true
+    }
+    else {
+        Write-Error "Failed to remove cloud-init drive from VM ${vmId}: $($deleteResponse | ConvertTo-Json -Depth 5)"
+        return $false
+    }
+}
+
 Function Start-SleepOnPveTask {
     param (
         [Parameter(Mandatory = $true)]

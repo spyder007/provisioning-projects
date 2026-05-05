@@ -9,9 +9,10 @@ autoinstall:
     network:
       version: 2
       ethernets:
-        enp6s18:
+        all-en:
+          match:
+            name: "en*"
           dhcp4: yes
-          dhcp-identifier: mac
           nameservers:
             addresses: [8.8.8.8, 1.1.1.1]
   ssh:
@@ -20,16 +21,8 @@ autoinstall:
     - apt-transport-https
     - ca-certificates
     - curl
-    
-  early-commands:
-    - echo "nameserver 8.8.8.8" >> /etc/resolv.conf
-    - echo "nameserver 1.1.1.1" >> /etc/resolv.conf
-    - apt update
+    - qemu-guest-agent
   late-commands:
-    - echo "nameserver 8.8.8.8" >> /etc/resolv.conf
-    - echo "nameserver 1.1.1.1" >> /etc/resolv.conf
-    - curtin in-target -- apt-get update
-    - curtin in-target -- apt-get install -y qemu-guest-agent
     - curtin in-target -- systemctl enable qemu-guest-agent
     - echo '{{username}} ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/{{username}}
 

@@ -29,12 +29,12 @@ variable "http" {
 
 variable "iso_checksum" {
   type    = string
-  default = "dec49008a71f6098d0bcfc822021f4d042d5f2db279e4d75bdd981304f1ca5d9"
+  default = "" # TODO: fill in SHA256 from https://releases.ubuntu.com/26.04/SHA256SUMS
 }
 
 variable "iso_file" {
   type    = string
-  default = "local:iso/ubuntu-26.04-live-server-amd64.iso"
+  default = "local:iso/ubuntu-26.04-live-server-amd64.iso" # TODO: confirm exact filename
 }
 
 variable "mac_address" {
@@ -79,7 +79,7 @@ variable "username" {
 
 variable "vm_name" {
   type    = string
-  default = "ubuntu-2404-base"
+  default = "ubuntu-2604-base"
 }
 
 variable "px_user" {
@@ -93,8 +93,8 @@ variable "px_password" {
 }
 
 variable "runner_ip_address" {
-    type = string
-    default = env("RUNNER_IP_ADDRESS")
+  type    = string
+  default = env("RUNNER_IP_ADDRESS")
 }
 
 variable "vlan_tag" {
@@ -104,12 +104,12 @@ variable "vlan_tag" {
 
 variable "vm_id" {
   type    = string
-  default = "98999"
+  default = "98998"
 }
 
 source "proxmox-iso" "ubuntu_vm" {
-  boot_command        = [ "<esc><wait>", 
-                          "c", 
+  boot_command        = [ "<esc><wait>",
+                          "c",
                           "linux /casper/vmlinuz quiet autoinstall ip=dhcp multipath=off ds=nocloud-net\\;s=http://${var.runner_ip_address}:{{ .HTTPPort }}/", "<enter><wait3s>",
                           "initrd /casper/initrd", "<enter><wait3s>","boot", "<enter>"]
   boot_wait           = "10s"
@@ -137,14 +137,14 @@ source "proxmox-iso" "ubuntu_vm" {
     vlan_tag = var.vlan_tag
     #mac_address = var.mac_address == "" ? null : var.mac_address
   }
-  
+
   node                 = "${var.px_node}"
   proxmox_url          = "https://${var.px_cluster_address}:8006/api2/json"
   ssh_password         = "${var.password}"
   ssh_timeout          = "1h"
   ssh_username         = "${var.username}"
-  template_description = "Ubuntu 24.04 Base Image, generated on ${timestamp()}"
-  template_name        = "ubuntu-2404-base"
+  template_description = "Ubuntu 26.04 Base Image, generated on ${timestamp()}"
+  template_name        = "ubuntu-2604-base"
   username             = "${var.px_user}"
   password             = "${var.px_password}"
 
@@ -173,7 +173,7 @@ build {
 
   # Provisioning the VM Template for Cloud-Init Integration in Proxmox #3
   provisioner "shell" {
-      inline = [ 
+      inline = [
           "sudo cp ~/packertmp/99-pve.cfg /etc/cloud/cloud.cfg.d/99-pve.cfg"
           ]
   }

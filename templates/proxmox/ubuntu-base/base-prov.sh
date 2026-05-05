@@ -13,6 +13,10 @@ sudo apt autoremove -y --purge
 sudo apt -y clean
 sudo apt -y autoclean
 
+sudo swapoff -a
+sudo sed -i '/swap/d' /etc/fstab
+sudo rm -f /swap.img
+
 sudo cloud-init clean
 sudo rm -f /etc/cloud/cloud.cfg.d/subiquity-disable-cloudinit-networking.cfg
 sudo rm -f /etc/netplan/00-installer-config.yaml

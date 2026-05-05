@@ -6,7 +6,7 @@
     "DiskSizeGb": 120,
     "ClusterNodeStorage": "vmthin",
     "ClusterNode": "pmxdell",
-    "BaseVmId": 98999,
+    "BaseVmId": 98998,
     "MinVmId": 30000,
     "MaxVmId": 30100
 }

@@ -80,27 +80,32 @@ function Add-PxNodeToRke2Cluster {
     
     if ($nodeDetail.success) {
         if ($useUnifi) {
-            $clusterDns = Get-ClusterDns -clusterName $clusterName
-            # Servers get added to the cp-<cluster name>, while agents get added to tfx-<cluster name>
-            if ($nodeType -eq "server" -or $nodeType -eq "first-server") {
-                $clusterDns.controlPlane += @{
-                    hostName = "cp-$($clusterName).$($dnsDomain)"
-                    ipAddress     = "$($nodeDetail.ipAddress)"
-                    recordType = "A"
-                    macAddress = $null
-                    deviceLock = $false
-                }
+            $clusterDns = Get-ClusterDns -clusterName $clusterName -dnsZone $dnsDomain
+            if ($null -eq $clusterDns -or $clusterDns -eq $false) {
+                Write-Warning "Could not retrieve cluster DNS record for '$clusterName' — skipping DNS update."
             }
             else {
-                $clusterDns.traffic += @{
-                    hostName = "tfx-$($clusterName).$($dnsDomain)"
-                    ipAddress = "$($nodeDetail.ipAddress)"
-                    recordType = "A"
-                    macAddress = $null
-                    deviceLock = $false
+                # Servers get added to the cp-<cluster name>, while agents get added to tfx-<cluster name>
+                if ($nodeType -eq "server" -or $nodeType -eq "first-server") {
+                    $clusterDns.controlPlane += @{
+                        hostName   = "cp-$($clusterName).$($dnsDomain)"
+                        ipAddress  = "$($nodeDetail.ipAddress)"
+                        recordType = "A"
+                        macAddress = $null
+                        deviceLock = $false
+                    }
                 }
+                else {
+                    $clusterDns.traffic += @{
+                        hostName   = "tfx-$($clusterName).$($dnsDomain)"
+                        ipAddress  = "$($nodeDetail.ipAddress)"
+                        recordType = "A"
+                        macAddress = $null
+                        deviceLock = $false
+                    }
+                }
+                $clusterDns = Update-ClusterDns $clusterDns
             }
-            $clusterDns = Update-ClusterDns $clusterDns
         }
     }
     return $nodeDetail;

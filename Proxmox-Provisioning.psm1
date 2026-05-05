@@ -360,7 +360,7 @@ function Copy-PXUbuntuTemplateAndProvision {
     if (-not $success) {
         Write-Error "Packer build failed with exit code $($global:LASTEXITCODE).";
         Remove-PxVmById -vmId $newVm.vmid -pxNode $newVm.node
-        
+
         if ($useUnifi) {
             if ($null -ne $macAddress) {
                 Remove-UnifiClient -macAddress $macAddress.MacAddress
@@ -371,10 +371,12 @@ function Copy-PXUbuntuTemplateAndProvision {
         }  
     }
 
+    Remove-PxVmCloudInitDrive -vmId $newVm.vmid -pxNode $newVm.node
+
     return @{
         success     = $success
         machineName = "$machineName"
-    }  
+    }
 }
 
 Function Set-PxVmTags {
